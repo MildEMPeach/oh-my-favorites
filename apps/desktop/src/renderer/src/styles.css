@@ -91,3 +91,49 @@ button { font: inherit; }
 .primary-button { border: 0; background: #252827; color: #fff; }
 .secondary-button { border: 1px solid #d9dad7; background: #fff; color: #34383a; }
 .connection-status { padding: 10px 12px; border-radius: 7px; background: #f0f0ed; color: #5f6467; font-size: 12px; }
+
+.app-shell.dark-mode {
+  color: #e7e9ea;
+  background: #17191b;
+}
+.dark-mode .sidebar { background: #1d2022; border-right-color: #303438; }
+.dark-mode .brand { color: #f1f3f4; }
+.dark-mode .sidebar-toggle,
+.dark-mode .nav-button,
+.dark-mode .tag-nav button,
+.dark-mode .icon-button,
+.dark-mode .star-button { color: #aeb4b8; }
+.dark-mode .sidebar-toggle:hover,
+.dark-mode .nav-button:hover,
+.dark-mode .tag-nav button:hover,
+.dark-mode .icon-button:hover,
+.dark-mode .star-button:hover { background: #2a2e31; color: #f1f3f4; }
+.dark-mode .nav-button.active,
+.dark-mode .tag-nav button.active { background: #303438; color: #f7f8f8; }
+.dark-mode .tag-nav > span { color: #7f878c; }
+.dark-mode .item-column { background: #17191b; border-right-color: #303438; }
+.dark-mode .list-header { border-bottom-color: #2b2f32; }
+.dark-mode .list-header span,
+.dark-mode .item-card p,
+.dark-mode .item-card time,
+.dark-mode .list-empty,
+.dark-mode .settings-panel p { color: #92999e; }
+.dark-mode .item-card { border-bottom-color: #282c2f; }
+.dark-mode .item-card:hover,
+.dark-mode .item-card.selected { background: #202326; }
+.dark-mode .item-tags span,
+.dark-mode .connection-status { background: #292d30; color: #aeb4b8; }
+.dark-mode .browser-host { background: #141617; }
+.dark-mode .browser-empty { color: #7f878c; }
+.dark-mode .error-card { background: #3a2528; color: #f0d7da; }
+.dark-mode .title-editor,
+.dark-mode .tag-editor input,
+.dark-mode .settings-panel input { border-color: #3b4044; background: #202326; color: #eef0f1; }
+.dark-mode .title-editor:focus,
+.dark-mode .tag-editor input:focus,
+.dark-mode .settings-panel input:focus { border-color: #70787e; }
+.dark-mode .secondary-button { border-color: #3b4044; background: #202326; color: #e7e9ea; }
+.dark-mode .primary-button,
+.dark-mode .tag-editor > button:not(.icon-button),
+.dark-mode .title-editor-actions > button:not(.icon-button) { background: #e7e9ea; color: #1b1e20; }
+.dark-mode .star-button.active { color: #f4c95d; background: #3a321f; }

@@ -1,4 +1,4 @@
-import { Bookmark, Circle, Clock3, Inbox, PanelLeftClose, PanelLeftOpen, Pencil, RefreshCw, Settings, Star, Tag, X } from "lucide-react";
+import { Bookmark, Circle, Clock3, Inbox, Moon, PanelLeftClose, PanelLeftOpen, Pencil, RefreshCw, Settings, Star, Sun, Tag, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getConnectionConfig, listItems, listTags, markRead, renameItem, saveConnectionConfig, setItemTags, testConnection, toggleFavorite, type Item } from "./api";
 import "./styles.css";
@@ -20,6 +20,7 @@ export function App() {
   const [favoritePendingId, setFavoritePendingId] = useState<number | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [itemColumnOpen, setItemColumnOpen] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("theme") === "dark");
   const browserHost = useRef<HTMLDivElement>(null);
   const selected = useMemo(() => items.find((item) => item.id === selectedId) ?? null, [items, selectedId]);
 
@@ -92,6 +93,14 @@ export function App() {
     window.favorites.hideBrowser();
   }
 
+  function toggleTheme() {
+    setDarkMode((current) => {
+      const next = !current;
+      localStorage.setItem("theme", next ? "dark" : "light");
+      return next;
+    });
+  }
+
   useEffect(() => {
     void refresh();
   }, [filter, activeTag]);
@@ -99,6 +108,10 @@ export function App() {
   useEffect(() => {
     listTags().then((result) => setTags(result.tags)).catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.style.colorScheme = darkMode ? "dark" : "light";
+  }, [darkMode]);
 
   useEffect(() => {
     const element = browserHost.current;
@@ -155,7 +168,7 @@ export function App() {
   }
 
   return (
-    <main className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${itemColumnOpen ? "" : "item-column-collapsed"}`}>
+    <main className={`app-shell ${darkMode ? "dark-mode" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${itemColumnOpen ? "" : "item-column-collapsed"}`}>
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-title"><Bookmark size={20} /><span>Oh My Favorites</span></div>
@@ -173,6 +186,7 @@ export function App() {
           <NavButton active={!showSettings && filter === "unread"} icon={<Inbox size={17} />} label="Unread" onClick={() => chooseFilter("unread")} />
           <NavButton active={!showSettings && filter === "favorites"} icon={<Star size={17} />} label="Favorites" onClick={() => chooseFilter("favorites")} />
           <NavButton active={showSettings} icon={<Settings size={17} />} label="Settings" onClick={openSettings} />
+          <NavButton active={false} icon={darkMode ? <Sun size={17} /> : <Moon size={17} />} label={darkMode ? "Light mode" : "Dark mode"} onClick={toggleTheme} />
         </nav>
         {tags.length > 0 && <div className="tag-nav">
           <span>Tags</span>
