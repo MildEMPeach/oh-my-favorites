@@ -31,7 +31,8 @@ The desktop browser runs in a separate persistent Electron session from the app 
 - Unread/read state. Opening an item marks it as read.
 - Favorites view.
 - Manual tags and tag filtering.
-- Page title, description and favicon metadata fetching.
+- Optional custom titles; new items default to their URL when no title is supplied.
+- Page description and favicon metadata fetching.
 - SSRF-aware metadata fetching with DNS resolution checks, redirect revalidation, response-size limits and timeouts.
 - Embedded Chromium browser using Electron `WebContentsView`.
 - Self-hosted Fastify/SQLite server with Docker Compose.
@@ -61,6 +62,15 @@ Telegram ingestion is optional during local development:
 TELEGRAM_BOT_TOKEN=123456:your-bot-token
 TELEGRAM_ALLOWED_USER_ID=123456789
 ```
+
+Telegram message formats:
+
+```text
+https://example.com
+https://example.com My custom title
+```
+
+When text follows the URL, it is saved as the item title. When no title is supplied, the normalized URL is used as the title.
 
 Start the server and desktop client in separate terminals:
 

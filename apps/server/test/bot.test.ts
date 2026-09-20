@@ -13,15 +13,28 @@ test("Telegram ingestion enforces the single-user allowlist", async () => {
   assert.equal(called, false);
 });
 
-test("Telegram ingestion extracts and saves the first URL", async () => {
+test("Telegram ingestion extracts URL and trailing custom title", async () => {
   let savedUrl = "";
-  const reply = await processTelegramText(1, "read this https://example.com/a later", 1, async (url) => {
+  let savedTitle: string | undefined;
+  const reply = await processTelegramText(1, "read this https://example.com/a My article", 1, async (url, _source, title) => {
     savedUrl = url;
-    return { url: new URL(url).toString() };
+    savedTitle = title;
+    return { url: new URL(url).toString(), title };
   });
 
   assert.equal(savedUrl, "https://example.com/a");
+  assert.equal(savedTitle, "My article");
   assert.equal(reply, "Saved: https://example.com/a");
+});
+
+test("Telegram ingestion leaves title undefined when no title is supplied", async () => {
+  let savedTitle: string | undefined = "unexpected";
+  await processTelegramText(1, "https://example.com/a", 1, async (url, _source, title) => {
+    savedTitle = title;
+    return { url: new URL(url).toString(), title };
+  });
+
+  assert.equal(savedTitle, undefined);
 });
 
 test("Telegram ingestion handles messages without URLs", async () => {

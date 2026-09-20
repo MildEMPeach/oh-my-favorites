@@ -6,15 +6,17 @@ import { fetchUrlMetadata } from "./metadata.js";
 export class ItemService {
   constructor(private readonly db: FavoritesDatabase) {}
 
-  async create(url: string, source: "telegram" | "desktop") {
+  async create(url: string, source: "telegram" | "desktop", title?: string) {
     const parsed = new URL(url);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
       throw new Error("Only http(s) URLs are supported");
     }
     const normalized = parsed.toString();
+    const normalizedTitle = title?.trim() || normalized;
     const now = new Date();
     const inserted = await this.db.insert(items).values({
       url: normalized,
+      title: normalizedTitle,
       source,
       createdAt: now
     }).onConflictDoNothing({ target: items.url }).returning();
@@ -22,13 +24,20 @@ export class ItemService {
     if (inserted[0]) {
       try {
         const metadata = await fetchUrlMetadata(normalized);
-        const enriched = await this.db.update(items).set(metadata).where(eq(items.id, inserted[0].id)).returning();
+        const enriched = await this.db.update(items).set({
+          description: metadata.description,
+          faviconUrl: metadata.faviconUrl
+        }).where(eq(items.id, inserted[0].id)).returning();
         return enriched[0] ?? inserted[0];
       } catch {
         return inserted[0];
       }
     }
     const existing = await this.db.select().from(items).where(eq(items.url, normalized)).limit(1);
+    if (existing[0] && title?.trim()) {
+      const renamed = await this.db.update(items).set({ title: title.trim() }).where(eq(items.id, existing[0].id)).returning();
+      return renamed[0] ?? existing[0];
+    }
     return existing[0];
   }
 

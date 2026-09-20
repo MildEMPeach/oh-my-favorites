@@ -138,6 +138,7 @@ test("item lifecycle supports read, favorite, tags and filtering", async () => {
   const created = createdResponse.json();
   assert.equal(created.readStatus, "unread");
   assert.equal(created.isFavorite, false);
+  assert.equal(created.title, "http://127.0.0.1/article");
 
   const readResponse = await app.inject({
     method: "PATCH",

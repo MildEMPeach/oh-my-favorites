@@ -54,9 +54,10 @@ export async function buildApp(items: ItemService, apiToken: string) {
         } catch {
           return false;
         }
-      })
+      }),
+      title: z.string().trim().min(1).max(300).optional()
     }).parse(request.body);
-    const item = await items.create(body.url, "desktop");
+    const item = await items.create(body.url, "desktop", body.title);
     return reply.code(201).send(item);
   });
 
