@@ -16,6 +16,7 @@ export function App() {
   const [editingTitleId, setEditingTitleId] = useState<number | null>(null);
   const [titleDraft, setTitleDraft] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+  const [showTags, setShowTags] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [favoritePendingId, setFavoritePendingId] = useState<number | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -54,11 +55,13 @@ export function App() {
   }
 
   function chooseFilter(next: Filter) {
-    if (!showSettings && filter === next) {
+    if (!showSettings && !showTags && !activeTag && filter === next) {
       setItemColumnOpen((current) => !current);
       return;
     }
     setShowSettings(false);
+    setShowTags(false);
+    setActiveTag(undefined);
     setFilter(next);
     setItemColumnOpen(true);
   }
@@ -88,9 +91,42 @@ export function App() {
       return;
     }
     setShowSettings(true);
+    setShowTags(false);
+    setActiveTag(undefined);
     setItemColumnOpen(true);
     setSelectedId(null);
     window.favorites.hideBrowser();
+  }
+
+  async function openTags() {
+    if (showTags) {
+      setItemColumnOpen((current) => !current);
+      return;
+    }
+
+    setShowSettings(false);
+    setShowTags(true);
+    setActiveTag(undefined);
+    setItemColumnOpen(true);
+    await refreshTags();
+  }
+
+  async function refreshTags() {
+    try {
+      const result = await listTags();
+      setTags(result.tags);
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Failed to load tags");
+    }
+  }
+
+  function openTag(tag: string) {
+    setShowSettings(false);
+    setShowTags(false);
+    setFilter("all");
+    setActiveTag(tag);
+    setItemColumnOpen(true);
   }
 
   function toggleTheme() {
@@ -182,25 +218,40 @@ export function App() {
           </button>
         </div>
         <nav>
-          <NavButton active={!showSettings && filter === "all"} icon={<Clock3 size={17} />} label="Timeline" onClick={() => chooseFilter("all")} />
-          <NavButton active={!showSettings && filter === "unread"} icon={<Inbox size={17} />} label="Unread" onClick={() => chooseFilter("unread")} />
-          <NavButton active={!showSettings && filter === "favorites"} icon={<Star size={17} />} label="Favorites" onClick={() => chooseFilter("favorites")} />
+          <NavButton active={!showSettings && !showTags && !activeTag && filter === "all"} icon={<Clock3 size={17} />} label="Timeline" onClick={() => chooseFilter("all")} />
+          <NavButton active={!showSettings && !showTags && !activeTag && filter === "unread"} icon={<Inbox size={17} />} label="Unread" onClick={() => chooseFilter("unread")} />
+          <NavButton active={!showSettings && !showTags && !activeTag && filter === "favorites"} icon={<Star size={17} />} label="Favorites" onClick={() => chooseFilter("favorites")} />
+          <NavButton active={showTags || Boolean(activeTag)} icon={<Tag size={17} />} label="Tags" onClick={() => void openTags()} />
           <NavButton active={showSettings} icon={<Settings size={17} />} label="Settings" onClick={openSettings} />
         </nav>
-        {tags.length > 0 && <div className="tag-nav">
-          <span>Tags</span>
-          <button className={!activeTag ? "active" : ""} onClick={() => { setActiveTag(undefined); setItemColumnOpen(true); }}>All tags</button>
-          {tags.map((tag) => <button key={tag.id} className={activeTag === tag.name ? "active" : ""} onClick={() => { setActiveTag(tag.name); setItemColumnOpen(true); }}>#{tag.name}</button>)}
-        </div>}
         <div className="sidebar-footer">
           <NavButton active={false} icon={darkMode ? <Sun size={17} /> : <Moon size={17} />} label={darkMode ? "Light mode" : "Dark mode"} onClick={toggleTheme} />
         </div>
       </aside>
 
       <section className="item-column">
-        {showSettings ? <SettingsPanel onSaved={() => { setShowSettings(false); setItemColumnOpen(true); void refresh(); }} /> : <>
+        {showSettings ? <SettingsPanel onSaved={() => { setShowSettings(false); setItemColumnOpen(true); void refresh(); }} /> : showTags ? <>
         <header className="list-header">
-          <div><strong>{filter === "all" ? "Timeline" : filter === "unread" ? "Unread" : "Favorites"}</strong><span>{items.length} items</span></div>
+          <div><strong>Tags</strong><span>{tags.length} tags</span></div>
+          <button className="icon-button" onClick={() => void refreshTags()} title="Refresh"><RefreshCw size={16} /></button>
+        </header>
+        {error && <div className="error-card">{error}<small>Check Settings and confirm the server is reachable.</small></div>}
+        <div className="tag-browser">
+          {!error && tags.length === 0 && <div className="list-empty">
+            <Tag size={24} />
+            <strong>No tags yet</strong>
+            <span>Add tags to an item and they will appear here.</span>
+          </div>}
+          {tags.map((tag) => (
+            <button key={tag.id} className="tag-browser-item" onClick={() => openTag(tag.name)}>
+              <Tag size={15} />
+              <span>#{tag.name}</span>
+            </button>
+          ))}
+        </div>
+        </> : <>
+        <header className="list-header">
+          <div><strong>{activeTag ? `#${activeTag}` : filter === "all" ? "Timeline" : filter === "unread" ? "Unread" : "Favorites"}</strong><span>{items.length} items</span></div>
           <button className="icon-button" onClick={() => void refresh()} title="Refresh"><RefreshCw size={16} /></button>
         </header>
         {error && <div className="error-card">{error}<small>Check Settings and confirm the server is reachable.</small></div>}
