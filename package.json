@@ -8,9 +8,11 @@
     "dev": "pnpm --parallel --filter @oh-my-favorites/server --filter @oh-my-favorites/desktop dev",
     "dev:server": "pnpm --filter @oh-my-favorites/server dev",
     "dev:desktop": "pnpm --filter @oh-my-favorites/desktop dev",
+    "dev:mcp": "pnpm --filter @oh-my-favorites/mcp dev",
+    "build:mcp": "pnpm --filter @oh-my-favorites/mcp build",
     "build": "pnpm -r build",
     "typecheck": "pnpm --filter @oh-my-favorites/shared build && pnpm --filter @oh-my-favorites/database build && pnpm -r typecheck",
-    "test": "pnpm --filter @oh-my-favorites/server test",
+    "test": "pnpm --filter @oh-my-favorites/server test && pnpm --filter @oh-my-favorites/mcp test",
     "db:generate": "pnpm --filter @oh-my-favorites/database db:generate",
     "db:migrate": "pnpm --filter @oh-my-favorites/database db:migrate"
   },

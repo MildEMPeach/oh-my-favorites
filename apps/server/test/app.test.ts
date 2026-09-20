@@ -21,6 +21,53 @@ test("API rejects requests without the bearer token", async () => {
   await app.close();
 });
 
+test("API supports MCP ingestion with custom title and additive tags", async () => {
+  const { app } = await createFixture();
+  const headers = { authorization: `Bearer ${TOKEN}` };
+
+  const createdResponse = await app.inject({
+    method: "POST",
+    url: "/api/items",
+    headers,
+    payload: {
+      url: "http://127.0.0.1/mcp-article",
+      title: "Agent curated article",
+      tags: ["agent", "research", "agent"]
+    }
+  });
+  assert.equal(createdResponse.statusCode, 201);
+  const created = createdResponse.json();
+  assert.equal(created.source, "desktop");
+  assert.equal(created.title, "Agent curated article");
+  assert.deepEqual(created.tags.map((tag: { name: string }) => tag.name), ["agent", "research"]);
+
+  const duplicateResponse = await app.inject({
+    method: "POST",
+    url: "/api/items",
+    headers,
+    payload: {
+      url: "http://127.0.0.1/mcp-article",
+      title: "Better title",
+      tags: ["later"]
+    }
+  });
+  assert.equal(duplicateResponse.statusCode, 201);
+  const duplicate = duplicateResponse.json();
+  assert.equal(duplicate.id, created.id);
+  assert.equal(duplicate.title, "Better title");
+  assert.deepEqual(duplicate.tags.map((tag: { name: string }) => tag.name), ["agent", "later", "research"]);
+
+  const getResponse = await app.inject({
+    method: "GET",
+    url: `/api/items/${created.id}`,
+    headers
+  });
+  assert.equal(getResponse.statusCode, 200);
+  assert.equal(getResponse.json().title, "Better title");
+
+  await app.close();
+});
+
 test("CORS preflight allows desktop mutation methods", async () => {
   const { app } = await createFixture();
 
@@ -84,6 +131,14 @@ test("API returns 400 for invalid input and 404 for missing items", async () => 
   });
   assert.equal(missingRead.statusCode, 404);
   assert.deepEqual(missingRead.json(), { error: "not_found" });
+
+  const missingGet = await app.inject({
+    method: "GET",
+    url: "/api/items/999",
+    headers
+  });
+  assert.equal(missingGet.statusCode, 404);
+  assert.deepEqual(missingGet.json(), { error: "not_found" });
 
   const missingFavorite = await app.inject({
     method: "PATCH",

@@ -1,6 +1,6 @@
 # Oh My Favorites
 
-Single-user, self-hosted URL inbox and favorites manager. URLs can be sent to a Telegram bot, stored by a small self-hosted server, and read from an Electron desktop client with an embedded browser.
+Single-user, self-hosted URL inbox and favorites manager. URLs can be sent from Telegram or any MCP-capable agent, stored by a small self-hosted server, and read from an Electron desktop client with an embedded browser.
 
 ## Architecture
 
@@ -10,15 +10,18 @@ Telegram
    ▼
 Server (Docker)
 Fastify + grammY + SQLite
-   │
-   │ Bearer-token REST API
-   ▼
-Desktop
-Electron + React + WebContentsView
+   ▲                 ▲
+   │ REST            │ REST
+   │                 │
+Desktop          MCP Server (stdio)
+Electron             ▲
+                     │ MCP
+                  Any Agent
 ```
 
 - `apps/server`: Fastify API + Telegram Bot.
 - `apps/desktop`: Electron + React desktop client.
+- `apps/mcp-server`: stdio MCP adapter for agents such as Hermes, Claude, Codex, or other MCP clients.
 - `packages/database`: Drizzle schema and SQLite setup.
 - `packages/shared`: shared TypeScript contracts.
 
@@ -27,6 +30,7 @@ The desktop browser runs in a separate persistent Electron session from the app 
 ## Features
 
 - Telegram URL ingestion with a single allowed Telegram user ID.
+- MCP URL ingestion for external agents, with custom titles and additive tags.
 - Timeline ordered by import time.
 - Unread/read state. Opening an item marks it as read.
 - Favorites view.
@@ -78,6 +82,48 @@ Start the server and desktop client in separate terminals:
 pnpm dev:server
 pnpm dev:desktop
 ```
+
+## MCP / agent integration
+
+The MCP adapter lets an agent use its own browser to inspect a page, choose a title and tags, and then save it to Oh My Favorites. The MCP adapter itself intentionally does not fetch or interpret page content.
+
+Build it with:
+
+```bash
+pnpm build:mcp
+```
+
+Configure an MCP client to launch:
+
+```text
+node /absolute/path/to/oh-my-favoirtes/apps/mcp-server/dist/index.js
+```
+
+with:
+
+```env
+OMF_BASE_URL=http://127.0.0.1:8787
+OMF_API_TOKEN=the-same-token-as-API_TOKEN
+```
+
+Example generic stdio MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "oh-my-favorites": {
+      "command": "node",
+      "args": ["/absolute/path/to/oh-my-favoirtes/apps/mcp-server/dist/index.js"],
+      "env": {
+        "OMF_BASE_URL": "http://127.0.0.1:8787",
+        "OMF_API_TOKEN": "your-server-api-token"
+      }
+    }
+  }
+}
+```
+
+Available tools are `save_url`, `get_item`, `list_items`, `list_tags`, `update_item`, `add_tags`, and `remove_tags`. See `apps/mcp-server/README.md` for details.
 
 In the desktop app, open **Settings** and configure:
 

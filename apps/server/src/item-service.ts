@@ -41,6 +41,12 @@ export class ItemService {
     return existing[0];
   }
 
+  async get(id: number) {
+    const rows = await this.db.select().from(items).where(eq(items.id, id)).limit(1);
+    if (!rows[0]) return undefined;
+    return (await this.attachTags(rows))[0];
+  }
+
   async list(filters: { status?: "unread" | "read"; favorite?: boolean; tag?: string }) {
     const predicates = [];
     if (filters.status) predicates.push(eq(items.readStatus, filters.status));

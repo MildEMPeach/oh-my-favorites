@@ -43,6 +43,13 @@ export async function buildApp(items: ItemService, apiToken: string) {
     };
   });
 
+  app.get("/api/items/:id", async (request, reply) => {
+    const params = z.object({ id: z.coerce.number().int().positive() }).parse(request.params);
+    const item = await items.get(params.id);
+    if (!item) return reply.code(404).send({ error: "not_found" });
+    return item;
+  });
+
   app.get("/api/tags", async () => ({ tags: await items.listTags() }));
 
   app.post("/api/items", async (request, reply) => {
@@ -55,10 +62,15 @@ export async function buildApp(items: ItemService, apiToken: string) {
           return false;
         }
       }),
-      title: z.string().trim().min(1).max(300).optional()
+      title: z.string().trim().min(1).max(300).optional(),
+      tags: z.array(z.string().trim().min(1).max(64)).max(30).optional()
     }).parse(request.body);
     const item = await items.create(body.url, "desktop", body.title);
-    return reply.code(201).send(item);
+    if (!item) return reply.code(500).send({ error: "internal_error" });
+    for (const tag of body.tags ?? []) {
+      await items.addTag(item.id, tag);
+    }
+    return reply.code(201).send(await items.get(item.id));
   });
 
   app.patch("/api/items/:id/read", async (request, reply) => {
