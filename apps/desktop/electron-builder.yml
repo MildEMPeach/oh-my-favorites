@@ -1,0 +1,20 @@
+appId: com.ohmyfavorites.app
+productName: Oh My Favorites
+asar: true
+directories:
+  output: release
+files:
+  - out/**/*
+  - package.json
+mac:
+  category: public.app-category.productivity
+  target:
+    - dmg
+    - zip
+win:
+  target:
+    - nsis
+linux:
+  category: Utility
+  target:
+    - AppImage

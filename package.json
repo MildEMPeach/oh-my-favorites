@@ -1,0 +1,20 @@
+{
+  "name": "oh-my-favorites",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.4.2",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @oh-my-favorites/server --filter @oh-my-favorites/desktop dev",
+    "dev:server": "pnpm --filter @oh-my-favorites/server dev",
+    "dev:desktop": "pnpm --filter @oh-my-favorites/desktop dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm --filter @oh-my-favorites/shared build && pnpm --filter @oh-my-favorites/database build && pnpm -r typecheck",
+    "test": "pnpm --filter @oh-my-favorites/server test",
+    "db:generate": "pnpm --filter @oh-my-favorites/database db:generate",
+    "db:migrate": "pnpm --filter @oh-my-favorites/database db:migrate"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

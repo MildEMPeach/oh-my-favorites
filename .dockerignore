@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+apps/desktop
+docs
+data
+dist
+**/dist
+out
+**/out
+release
+**/release
+.git
+.gitignore
+.DS_Store
+*.log
+.env

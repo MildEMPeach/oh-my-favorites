@@ -1,0 +1,26 @@
+{
+  "name": "@oh-my-favorites/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test test/**/*.test.ts"
+  },
+  "dependencies": {
+    "@oh-my-favorites/database": "workspace:*",
+    "@oh-my-favorites/shared": "workspace:*",
+    "@fastify/cors": "^11.1.0",
+    "dotenv": "^17.2.2",
+    "drizzle-orm": "^0.44.5",
+    "fastify": "^5.6.0",
+    "grammy": "^1.38.2",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.5"
+  }
+}
