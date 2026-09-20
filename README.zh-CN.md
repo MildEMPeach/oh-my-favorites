@@ -4,7 +4,7 @@
   <img src="./apps/desktop/assets/icon.png" width="140" alt="Oh My Favorites 图标" />
 </p>
 
-<h3 align="center">现在先收藏，等有空再看。</h3>
+<h3 align="center">做一只快乐的互联网小仓鼠</h3>
 
 <p align="center">
   一个自托管的跨平台「稍后消费」Inbox。<br/>
