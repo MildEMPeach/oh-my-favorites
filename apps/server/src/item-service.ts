@@ -86,6 +86,13 @@ export class ItemService {
     return rows[0];
   }
 
+  async setTitle(id: number, title: string) {
+    const rows = await this.db.update(items).set({
+      title: title.trim()
+    }).where(eq(items.id, id)).returning();
+    return rows[0];
+  }
+
   private async attachTags<T extends { id: number }>(rows: T[]) {
     if (rows.length === 0) return rows.map((row) => ({ ...row, tags: [] as { id: number; name: string }[] }));
 

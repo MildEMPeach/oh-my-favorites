@@ -76,6 +76,14 @@ export async function buildApp(items: ItemService, apiToken: string) {
     return item;
   });
 
+  app.patch("/api/items/:id/title", async (request, reply) => {
+    const params = z.object({ id: z.coerce.number().int().positive() }).parse(request.params);
+    const body = z.object({ title: z.string().trim().min(1).max(300) }).parse(request.body);
+    const item = await items.setTitle(params.id, body.title);
+    if (!item) return reply.code(404).send({ error: "not_found" });
+    return item;
+  });
+
   app.put("/api/items/:id/tags", async (request, reply) => {
     const params = z.object({ id: z.coerce.number().int().positive() }).parse(request.params);
     const body = z.object({ tags: z.array(z.string().min(1).max(64)).max(30) }).parse(request.body);

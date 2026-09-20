@@ -94,6 +94,24 @@ test("API returns 400 for invalid input and 404 for missing items", async () => 
   assert.equal(missingFavorite.statusCode, 404);
   assert.deepEqual(missingFavorite.json(), { error: "not_found" });
 
+  const missingTitle = await app.inject({
+    method: "PATCH",
+    url: "/api/items/999/title",
+    headers,
+    payload: { title: "Renamed item" }
+  });
+  assert.equal(missingTitle.statusCode, 404);
+  assert.deepEqual(missingTitle.json(), { error: "not_found" });
+
+  const invalidTitle = await app.inject({
+    method: "PATCH",
+    url: "/api/items/999/title",
+    headers,
+    payload: { title: "   " }
+  });
+  assert.equal(invalidTitle.statusCode, 400);
+  assert.deepEqual(invalidTitle.json(), { error: "invalid_request" });
+
   const missingTags = await app.inject({
     method: "PUT",
     url: "/api/items/999/tags",
@@ -139,6 +157,15 @@ test("item lifecycle supports read, favorite, tags and filtering", async () => {
   assert.equal(favoriteResponse.statusCode, 200);
   assert.equal(favoriteResponse.json().isFavorite, true);
 
+  const titleResponse = await app.inject({
+    method: "PATCH",
+    url: `/api/items/${created.id}/title`,
+    headers,
+    payload: { title: "My renamed article" }
+  });
+  assert.equal(titleResponse.statusCode, 200);
+  assert.equal(titleResponse.json().title, "My renamed article");
+
   const tagsResponse = await app.inject({
     method: "PUT",
     url: `/api/items/${created.id}/tags`,
@@ -157,6 +184,7 @@ test("item lifecycle supports read, favorite, tags and filtering", async () => {
   const list = listResponse.json();
   assert.equal(list.items.length, 1);
   assert.equal(list.items[0].id, created.id);
+  assert.equal(list.items[0].title, "My renamed article");
 
   const tagsListResponse = await app.inject({ method: "GET", url: "/api/tags", headers });
   assert.deepEqual(tagsListResponse.json().tags.map((tag: { name: string }) => tag.name), ["backend", "research"]);

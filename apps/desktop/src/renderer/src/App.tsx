@@ -1,6 +1,6 @@
-import { Bookmark, Circle, Clock3, Inbox, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings, Star, Tag, X } from "lucide-react";
+import { Bookmark, Circle, Clock3, Inbox, PanelLeftClose, PanelLeftOpen, Pencil, RefreshCw, Settings, Star, Tag, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getConnectionConfig, listItems, listTags, markRead, saveConnectionConfig, setItemTags, testConnection, toggleFavorite, type Item } from "./api";
+import { getConnectionConfig, listItems, listTags, markRead, renameItem, saveConnectionConfig, setItemTags, testConnection, toggleFavorite, type Item } from "./api";
 import "./styles.css";
 
 type Filter = "all" | "unread" | "favorites";
@@ -13,6 +13,8 @@ export function App() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
   const [tagDraft, setTagDraft] = useState("");
+  const [editingTitleId, setEditingTitleId] = useState<number | null>(null);
+  const [titleDraft, setTitleDraft] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [favoritePendingId, setFavoritePendingId] = useState<number | null>(null);
@@ -28,6 +30,25 @@ export function App() {
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Failed to load items");
+    }
+  }
+
+  function openTitleEditor(item: Item) {
+    setEditingTitleId(item.id);
+    setTitleDraft(item.title ?? new URL(item.url).hostname);
+  }
+
+  async function saveTitle(item: Item) {
+    const title = titleDraft.trim();
+    if (!title) return;
+
+    try {
+      const updated = await renameItem(item.id, title);
+      setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, ...updated } : entry));
+      setEditingTitleId(null);
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Failed to rename item");
     }
   }
 
@@ -177,8 +198,21 @@ export function App() {
             <article key={item.id} className={`item-card ${selectedId === item.id ? "selected" : ""}`} onClick={() => void open(item)}>
               <div className="item-title-row">
                 <Circle size={9} fill={item.readStatus === "unread" ? "currentColor" : "none"} />
-                <strong>{item.title ?? new URL(item.url).hostname}</strong>
+                {editingTitleId === item.id ? (
+                  <input
+                    className="title-editor"
+                    autoFocus
+                    value={titleDraft}
+                    onClick={(event) => event.stopPropagation()}
+                    onChange={(event) => setTitleDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") void saveTitle(item);
+                      if (event.key === "Escape") setEditingTitleId(null);
+                    }}
+                  />
+                ) : <strong>{item.title ?? new URL(item.url).hostname}</strong>}
                 <div className="item-actions">
+                  <button className="star-button" title="Rename" aria-label="Rename" onClick={(event) => { event.stopPropagation(); openTitleEditor(item); }}><Pencil size={15} /></button>
                   <button className="star-button" title="Edit tags" onClick={(event) => { event.stopPropagation(); openTagEditor(item); }}><Tag size={15} /></button>
                   <button
                     className={`star-button ${item.isFavorite ? "active" : ""}`}
@@ -192,6 +226,10 @@ export function App() {
                   </button>
                 </div>
               </div>
+              {editingTitleId === item.id && <div className="title-editor-actions" onClick={(event) => event.stopPropagation()}>
+                <button onClick={() => void saveTitle(item)}>Save</button>
+                <button className="icon-button" onClick={() => setEditingTitleId(null)}><X size={14} /></button>
+              </div>}
               <p>{item.description ?? item.url}</p>
               {item.tags?.length > 0 && <div className="item-tags">{item.tags.map((tag) => <span key={tag.id}>#{tag.name}</span>)}</div>}
               {editingTagId === item.id && <div className="tag-editor" onClick={(event) => event.stopPropagation()}>

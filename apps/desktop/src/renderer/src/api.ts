@@ -73,6 +73,13 @@ export async function toggleFavorite(id: number, favorite: boolean) {
   });
 }
 
+export async function renameItem(id: number, title: string) {
+  return request<Item>(`/api/items/${id}/title`, {
+    method: "PATCH",
+    body: JSON.stringify({ title })
+  });
+}
+
 export async function setItemTags(id: number, tags: string[]) {
   return request<Item>(`/api/items/${id}/tags`, {
     method: "PUT",
