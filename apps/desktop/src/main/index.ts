@@ -6,6 +6,12 @@ type ViewBounds = { x: number; y: number; width: number; height: number };
 let mainWindow: BrowserWindow | null = null;
 let browserView: WebContentsView | null = null;
 
+app.setName("Oh My Favorites");
+
+function developmentIconPath() {
+  return join(__dirname, "../../build/icon.png");
+}
+
 function sanitizeBounds(bounds: ViewBounds): ViewBounds {
   return {
     x: Math.max(0, Math.round(bounds.x)),
@@ -22,6 +28,7 @@ function createWindow() {
     minWidth: 1000,
     minHeight: 640,
     title: "Oh My Favorites",
+    ...(process.platform !== "darwin" && process.env.ELECTRON_RENDERER_URL ? { icon: developmentIconPath() } : {}),
     webPreferences: {
       preload: join(__dirname, "../preload/index.cjs"),
       contextIsolation: true,
@@ -91,6 +98,9 @@ ipcMain.on("browser:hide", () => {
 });
 
 app.whenReady().then(() => {
+  if (process.platform === "darwin" && process.env.ELECTRON_RENDERER_URL) {
+    app.dock?.setIcon(developmentIconPath());
+  }
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
