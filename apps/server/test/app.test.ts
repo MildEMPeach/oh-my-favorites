@@ -21,6 +21,68 @@ test("API rejects requests without the bearer token", async () => {
   await app.close();
 });
 
+test("API returns 400 for invalid input and 404 for missing items", async () => {
+  const { app } = await createFixture();
+  const headers = { authorization: `Bearer ${TOKEN}` };
+
+  for (const url of ["not a url", "ftp://example.com/file"]) {
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/items",
+      headers,
+      payload: { url }
+    });
+    assert.equal(response.statusCode, 400);
+    assert.deepEqual(response.json(), { error: "invalid_request" });
+  }
+
+  const invalidQuery = await app.inject({
+    method: "GET",
+    url: "/api/items?favorite=yes",
+    headers
+  });
+  assert.equal(invalidQuery.statusCode, 400);
+  assert.deepEqual(invalidQuery.json(), { error: "invalid_request" });
+
+  const invalidId = await app.inject({
+    method: "PATCH",
+    url: "/api/items/not-a-number/read",
+    headers,
+    payload: { read: true }
+  });
+  assert.equal(invalidId.statusCode, 400);
+  assert.deepEqual(invalidId.json(), { error: "invalid_request" });
+
+  const missingRead = await app.inject({
+    method: "PATCH",
+    url: "/api/items/999/read",
+    headers,
+    payload: { read: true }
+  });
+  assert.equal(missingRead.statusCode, 404);
+  assert.deepEqual(missingRead.json(), { error: "not_found" });
+
+  const missingFavorite = await app.inject({
+    method: "PATCH",
+    url: "/api/items/999/favorite",
+    headers,
+    payload: { favorite: true }
+  });
+  assert.equal(missingFavorite.statusCode, 404);
+  assert.deepEqual(missingFavorite.json(), { error: "not_found" });
+
+  const missingTags = await app.inject({
+    method: "PUT",
+    url: "/api/items/999/tags",
+    headers,
+    payload: { tags: ["research"] }
+  });
+  assert.equal(missingTags.statusCode, 404);
+  assert.deepEqual(missingTags.json(), { error: "not_found" });
+
+  await app.close();
+});
+
 test("item lifecycle supports read, favorite, tags and filtering", async () => {
   const { app } = await createFixture();
   const headers = { authorization: `Bearer ${TOKEN}` };
