@@ -48,19 +48,11 @@ Oh My Favorites 做的事情很简单：**把所有“现在没空看，之后�
 
 ## 使用流程
 
-```mermaid
-flowchart LR
-    A[手机 / 浏览器] -->|分享链接| B[Telegram Bot]
-    C[AI Agent] -->|MCP| D[MCP Server]
-    B --> E[OMF Server]
-    D --> E
-    E --> F[(SQLite)]
-    F --> G[桌面 Inbox]
-    G --> H{处理}
-    H -->|打开| I[已读]
-    H -->|长期保留| J[收藏]
-    H -->|整理| K[标签]
-```
+| 📱 **发现它** | 🐹 **丢进来** | 📥 **统一收好** | 🖥️ **有空再看** |
+| :---: | :---: | :---: | :---: |
+| 视频、文章、项目、论文…… | 发给 Telegram Bot 或 Agent | 全部进入同一个 Inbox | 在桌面端阅读、观看、打标签或收藏 |
+
+不用再记“这个链接到底收藏在哪个平台了”，回来只看一个地方就够了。
 
 ## 核心功能
 
@@ -81,36 +73,26 @@ flowchart LR
 
 协议入口和核心业务服务是分开的。Telegram 与 MCP 最终都会走同一套服务端数据模型和 REST API。
 
-```mermaid
-flowchart TB
-    subgraph Capture[内容入口]
-        TG[Telegram Bot]
-        LA[本地 Agent]
-        RA[远程 / Docker Agent]
-    end
+```text
+                  值得存下来的东西
 
-    subgraph MCP[MCP 适配层]
-        STDIO[stdio]
-        HTTP[Streamable HTTP :8790]
-    end
-
-    subgraph Core[Oh My Favorites]
-        API[Fastify Server :8787]
-        DB[(SQLite)]
-    end
-
-    subgraph Client[消费端]
-        DESK[Electron Desktop]
-        WEB[内嵌 Chromium]
-    end
-
-    TG --> API
-    LA --> STDIO --> API
-    RA --> HTTP --> API
-    API <--> DB
-    DESK <--> API
-    DESK --> WEB
+    📱 Telegram                🤖 Agent
+         │                  stdio / HTTP
+         │                       │
+         └──────────┬────────────┘
+                    ▼
+             🐹 OMF Server
+              Fastify :8787
+                    │
+                    ▼
+               🗄️ SQLite
+                    ▲
+                    │
+             🖥️ Desktop App
+              浏览 · 阅读 · 整理
 ```
+
+MCP 既可以通过本地 **stdio** 使用，也可以通过远程 **Streamable HTTP :8790** 使用；它不会维护第二份数据，最终都回到同一个 OMF Server。
 
 ### 仓库结构
 

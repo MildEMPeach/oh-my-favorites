@@ -46,19 +46,11 @@ The core idea is intentionally small:
 
 ## Workflow
 
-```mermaid
-flowchart LR
-    A[Phone / Browser] -->|share link| B[Telegram Bot]
-    C[AI Agent] -->|MCP| D[MCP Server]
-    B --> E[OMF Server]
-    D --> E
-    E --> F[(SQLite)]
-    F --> G[Desktop Inbox]
-    G --> H{Process}
-    H -->|open| I[Read]
-    H -->|keep| J[Favorite]
-    H -->|organize| K[Tags]
-```
+| 📱 **Spot it** | 🐹 **Save it** | 📥 **Inbox it** | 🖥️ **Enjoy it later** |
+| :---: | :---: | :---: | :---: |
+| Video, article, repo, paper… | Send to Telegram or an agent | Everything lands in one queue | Read, watch, tag, or favorite on desktop |
+
+No platform hopping. No “where did I save that link?” Just one place to come back to.
 
 ## Highlights
 
@@ -79,36 +71,26 @@ flowchart LR
 
 The protocol adapters are separated from the main business service. Telegram and MCP ultimately use the same server-side item model and REST API.
 
-```mermaid
-flowchart TB
-    subgraph Capture[Capture]
-        TG[Telegram Bot]
-        LA[Local Agent]
-        RA[Remote / Docker Agent]
-    end
+```text
+                things worth saving
 
-    subgraph MCP[MCP Adapter]
-        STDIO[stdio]
-        HTTP[Streamable HTTP :8790]
-    end
-
-    subgraph Core[Oh My Favorites]
-        API[Fastify Server :8787]
-        DB[(SQLite)]
-    end
-
-    subgraph Client[Consume]
-        DESK[Electron Desktop]
-        WEB[Embedded Chromium]
-    end
-
-    TG --> API
-    LA --> STDIO --> API
-    RA --> HTTP --> API
-    API <--> DB
-    DESK <--> API
-    DESK --> WEB
+    📱 Telegram                🤖 Agent
+         │                  stdio / HTTP
+         │                       │
+         └──────────┬────────────┘
+                    ▼
+             🐹 OMF Server
+              Fastify :8787
+                    │
+                    ▼
+               🗄️ SQLite
+                    ▲
+                    │
+             🖥️ Desktop App
+          browse · read · organize
 ```
+
+The MCP adapter can run locally over **stdio** or remotely over **Streamable HTTP :8790**. It never owns a second copy of the data — all roads lead back to the same OMF Server.
 
 ### Repository layout
 
