@@ -17,5 +17,29 @@ services:
       retries: 3
       start_period: 10s
 
+  mcp:
+    profiles: ["mcp"]
+    build:
+      context: .
+      dockerfile: apps/mcp-server/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_healthy
+    environment:
+      OMF_BASE_URL: http://server:8787
+      OMF_API_TOKEN: ${API_TOKEN}
+      MCP_TOKEN: ${MCP_TOKEN}
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8790
+    ports:
+      - "${MCP_PORT:-8790}:8790"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8790/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 volumes:
   favorites-data:

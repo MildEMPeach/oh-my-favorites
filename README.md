@@ -13,10 +13,12 @@ Fastify + grammY + SQLite
    ▲                 ▲
    │ REST            │ REST
    │                 │
-Desktop          MCP Server (stdio)
-Electron             ▲
-                     │ MCP
-                  Any Agent
+Desktop          MCP Server
+Electron          ▲       ▲
+                  │       │
+                stdio   Streamable HTTP
+                  │       │
+             Local Agent  Remote Agent
 ```
 
 - `apps/server`: Fastify API + Telegram Bot.
@@ -85,7 +87,7 @@ pnpm dev:desktop
 
 ## MCP / agent integration
 
-The MCP adapter lets an agent use its own browser to inspect a page, choose a title and tags, and then save it to Oh My Favorites. The MCP adapter itself intentionally does not fetch or interpret page content.
+The MCP adapter lets an agent use its own browser to inspect a page, choose a title and tags, and then save it to Oh My Favorites. The MCP adapter itself intentionally does not fetch or interpret page content. It supports both local stdio and remote Streamable HTTP.
 
 Build it with:
 
@@ -124,6 +126,21 @@ Example generic stdio MCP configuration:
 ```
 
 Available tools are `save_url`, `get_item`, `list_items`, `list_tags`, `update_item`, `add_tags`, and `remove_tags`. See `apps/mcp-server/README.md` for details.
+
+For remote MCP, add a separate token to `.env`:
+
+```env
+MCP_TOKEN=replace-with-a-different-long-random-token
+MCP_PORT=8790
+```
+
+Then start the optional MCP Compose profile:
+
+```bash
+docker compose --profile mcp up -d --build
+```
+
+Remote clients connect to `/mcp` using Streamable HTTP and send `Authorization: Bearer <MCP_TOKEN>`. For internet access, expose this endpoint through HTTPS rather than publishing plaintext HTTP directly.
 
 In the desktop app, open **Settings** and configure:
 

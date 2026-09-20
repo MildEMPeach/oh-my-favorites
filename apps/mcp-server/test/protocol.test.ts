@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { createRemoteMcpHttpServer } from "../src/http-server.js";
 
 const ITEM = {
   id: 1,
@@ -96,6 +98,81 @@ test("stdio MCP server initializes, lists tools and calls save_url", async () =>
     });
   } finally {
     await client.close();
+    await new Promise<void>((resolve, reject) => api.close((error) => (error ? reject(error) : resolve())));
+  }
+});
+
+test("remote Streamable HTTP MCP authenticates, creates a session and calls save_url", async () => {
+  const requests: { method: string; url: string; body?: unknown }[] = [];
+  const api = createServer(async (req, res) => {
+    let body: unknown = undefined;
+    if (req.method !== "GET") {
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) chunks.push(Buffer.from(chunk));
+      if (chunks.length > 0) body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    }
+    requests.push({ method: req.method ?? "GET", url: req.url ?? "/", body });
+
+    if (req.headers.authorization !== "Bearer protocol-test-token") {
+      return sendJson(res, 401, { error: "unauthorized" });
+    }
+    if (req.method === "POST" && req.url === "/api/items") return sendJson(res, 201, ITEM);
+    if (req.method === "GET" && req.url === "/api/items/1") return sendJson(res, 200, ITEM);
+    if (req.method === "GET" && req.url === "/api/tags") return sendJson(res, 200, { tags: ITEM.tags });
+    return sendJson(res, 404, { error: "not_found" });
+  });
+  await new Promise<void>((resolve) => api.listen(0, "127.0.0.1", resolve));
+  const apiAddress = api.address();
+  assert.ok(apiAddress && typeof apiAddress === "object");
+
+  const remote = createRemoteMcpHttpServer({
+    baseUrl: `http://127.0.0.1:${apiAddress.port}`,
+    apiToken: "protocol-test-token",
+    mcpToken: "remote-mcp-token"
+  });
+  await new Promise<void>((resolve) => remote.listen(0, "127.0.0.1", resolve));
+  const remoteAddress = remote.address();
+  assert.ok(remoteAddress && typeof remoteAddress === "object");
+  const endpoint = `http://127.0.0.1:${remoteAddress.port}/mcp`;
+
+  const unauthorized = await fetch(endpoint);
+  assert.equal(unauthorized.status, 401);
+
+  const transport = new StreamableHTTPClientTransport(new URL(endpoint), {
+    requestInit: {
+      headers: { authorization: "Bearer remote-mcp-token" }
+    }
+  });
+  const client = new Client({ name: "omf-http-test-client", version: "0.1.0" });
+
+  try {
+    await client.connect(transport);
+    assert.ok(transport.sessionId);
+    assert.equal(client.getServerVersion()?.name, "oh-my-favorites");
+
+    const tools = await client.listTools();
+    assert.ok(tools.tools.some((tool) => tool.name === "save_url"));
+
+    const result = await client.callTool({
+      name: "save_url",
+      arguments: {
+        url: ITEM.url,
+        title: ITEM.title,
+        tags: ["agent", "research"]
+      }
+    });
+    assert.equal(result.isError, undefined);
+    assert.equal(result.structuredContent?.id, 1);
+
+    const post = requests.find((request) => request.method === "POST" && request.url === "/api/items");
+    assert.deepEqual(post?.body, {
+      url: ITEM.url,
+      title: ITEM.title,
+      tags: ["agent", "research"]
+    });
+  } finally {
+    await client.close();
+    await new Promise<void>((resolve, reject) => remote.close((error) => (error ? reject(error) : resolve())));
     await new Promise<void>((resolve, reject) => api.close((error) => (error ? reject(error) : resolve())));
   }
 });

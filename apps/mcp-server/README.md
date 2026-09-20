@@ -1,6 +1,9 @@
 # Oh My Favorites MCP Server
 
-Stdio MCP adapter for Oh My Favorites. It lets an MCP-capable agent save and manage URLs through the existing self-hosted REST API.
+MCP adapter for Oh My Favorites. It exposes the same tools through two transports:
+
+- stdio for local, process-spawned agents;
+- Streamable HTTP for remote agents and containerized deployments.
 
 The MCP server does **not** browse web pages itself. The intended workflow is:
 
@@ -17,15 +20,21 @@ pnpm --filter @oh-my-favorites/shared build
 pnpm --filter @oh-my-favorites/mcp build
 ```
 
-The executable entry point is:
+The stdio executable entry point is:
 
 ```text
 apps/mcp-server/dist/index.js
 ```
 
+The remote Streamable HTTP entry point is:
+
+```text
+apps/mcp-server/dist/http.js
+```
+
 ## Configuration
 
-The process requires two environment variables:
+Both modes require:
 
 ```env
 OMF_BASE_URL=http://127.0.0.1:8787
@@ -52,6 +61,66 @@ Generic stdio MCP client configuration:
 ```
 
 Use the equivalent stdio MCP configuration fields if an agent uses a different config format.
+
+## Remote Streamable HTTP
+
+The remote server additionally requires a dedicated MCP bearer token:
+
+```env
+MCP_TOKEN=replace-with-a-different-long-random-token
+MCP_HOST=0.0.0.0
+MCP_PORT=8790
+```
+
+Start it directly with:
+
+```bash
+OMF_BASE_URL=http://127.0.0.1:8787 \
+OMF_API_TOKEN=your-server-api-token \
+MCP_TOKEN=your-mcp-token \
+pnpm dev:mcp:http
+```
+
+The MCP endpoint is:
+
+```text
+http://127.0.0.1:8790/mcp
+```
+
+Clients must send:
+
+```http
+Authorization: Bearer <MCP_TOKEN>
+```
+
+Generic remote MCP configuration looks like:
+
+```json
+{
+  "mcpServers": {
+    "oh-my-favorites": {
+      "url": "https://favorites.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer your-mcp-token"
+      }
+    }
+  }
+}
+```
+
+Exact field names vary by MCP client. Use Streamable HTTP when the client asks for the transport type.
+
+### Docker
+
+Remote MCP is an optional Compose profile. Set a separate `MCP_TOKEN` in `.env`, then run:
+
+```bash
+docker compose --profile mcp up -d --build
+```
+
+The MCP container talks to the OMF server over the private Compose network at `http://server:8787`. Port `8790` is published for MCP clients.
+
+For access over the public internet, put the MCP endpoint behind HTTPS (for example Caddy, Nginx, or another TLS reverse proxy). Do not expose a plaintext HTTP MCP endpoint containing bearer credentials over an untrusted network.
 
 ## Tools
 

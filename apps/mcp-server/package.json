@@ -8,8 +8,10 @@
   },
   "scripts": {
     "dev": "tsx src/index.ts",
+    "dev:http": "tsx src/http.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "start:http": "node dist/http.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm build && tsx --test test/**/*.test.ts"
   },

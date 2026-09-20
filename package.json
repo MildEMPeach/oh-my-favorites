@@ -9,6 +9,7 @@
     "dev:server": "pnpm --filter @oh-my-favorites/server dev",
     "dev:desktop": "pnpm --filter @oh-my-favorites/desktop dev",
     "dev:mcp": "pnpm --filter @oh-my-favorites/mcp dev",
+    "dev:mcp:http": "pnpm --filter @oh-my-favorites/mcp dev:http",
     "build:mcp": "pnpm --filter @oh-my-favorites/mcp build",
     "build": "pnpm -r build",
     "typecheck": "pnpm --filter @oh-my-favorites/shared build && pnpm --filter @oh-my-favorites/database build && pnpm -r typecheck",
