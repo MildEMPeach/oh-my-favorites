@@ -23,10 +23,20 @@ function createWindow() {
     minHeight: 640,
     title: "Oh My Favorites",
     webPreferences: {
-      preload: join(__dirname, "../preload/index.mjs"),
+      preload: join(__dirname, "../preload/index.cjs"),
       contextIsolation: true,
       sandbox: true
     }
+  });
+
+  mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    console.error("Renderer failed to load", { errorCode, errorDescription, validatedURL });
+  });
+  mainWindow.webContents.on("preload-error", (_event, preloadPath, error) => {
+    console.error("Preload failed", { preloadPath, error });
+  });
+  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+    console.error("Renderer process gone", details);
   });
 
   browserView = new WebContentsView({
@@ -53,11 +63,10 @@ function createWindow() {
     callback(false);
   });
 
-  if (process.env.ELECTRON_RENDERER_URL) {
-    void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
-  } else {
-    void mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
-  }
+  const rendererLoad = process.env.ELECTRON_RENDERER_URL
+    ? mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
+    : mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+  void rendererLoad.catch((error) => console.error("Renderer load promise rejected", error));
 
   mainWindow.on("closed", () => {
     browserView = null;
