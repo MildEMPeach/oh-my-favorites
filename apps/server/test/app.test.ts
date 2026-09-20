@@ -24,7 +24,7 @@ test("API rejects requests without the bearer token", async () => {
 test("CORS preflight allows desktop mutation methods", async () => {
   const { app } = await createFixture();
 
-  for (const method of ["PATCH", "PUT"]) {
+  for (const method of ["PATCH", "PUT", "DELETE"]) {
     const response = await app.inject({
       method: "OPTIONS",
       url: "/api/items/1/favorite",
@@ -121,6 +121,23 @@ test("API returns 400 for invalid input and 404 for missing items", async () => 
   assert.equal(missingTags.statusCode, 404);
   assert.deepEqual(missingTags.json(), { error: "not_found" });
 
+  const missingAddTag = await app.inject({
+    method: "POST",
+    url: "/api/items/999/tags",
+    headers,
+    payload: { tag: "research" }
+  });
+  assert.equal(missingAddTag.statusCode, 404);
+  assert.deepEqual(missingAddTag.json(), { error: "not_found" });
+
+  const missingRemoveTag = await app.inject({
+    method: "DELETE",
+    url: "/api/items/999/tags/1",
+    headers
+  });
+  assert.equal(missingRemoveTag.statusCode, 404);
+  assert.deepEqual(missingRemoveTag.json(), { error: "not_found" });
+
   await app.close();
 });
 
@@ -176,6 +193,25 @@ test("item lifecycle supports read, favorite, tags and filtering", async () => {
   assert.equal(tagsResponse.statusCode, 200);
   assert.deepEqual(tagsResponse.json().tags.map((tag: { name: string }) => tag.name), ["backend", "research"]);
 
+  const addTagResponse = await app.inject({
+    method: "POST",
+    url: `/api/items/${created.id}/tags`,
+    headers,
+    payload: { tag: "later" }
+  });
+  assert.equal(addTagResponse.statusCode, 200);
+  assert.deepEqual(addTagResponse.json().tags.map((tag: { name: string }) => tag.name), ["backend", "later", "research"]);
+
+  const backendTag = addTagResponse.json().tags.find((tag: { name: string }) => tag.name === "backend");
+  assert.ok(backendTag);
+  const removeTagResponse = await app.inject({
+    method: "DELETE",
+    url: `/api/items/${created.id}/tags/${backendTag.id}`,
+    headers
+  });
+  assert.equal(removeTagResponse.statusCode, 200);
+  assert.deepEqual(removeTagResponse.json().tags.map((tag: { name: string }) => tag.name), ["later", "research"]);
+
   const listResponse = await app.inject({
     method: "GET",
     url: "/api/items?favorite=true&tag=research",
@@ -188,7 +224,7 @@ test("item lifecycle supports read, favorite, tags and filtering", async () => {
   assert.equal(list.items[0].title, "My renamed article");
 
   const tagsListResponse = await app.inject({ method: "GET", url: "/api/tags", headers });
-  assert.deepEqual(tagsListResponse.json().tags.map((tag: { name: string }) => tag.name), ["backend", "research"]);
+  assert.deepEqual(tagsListResponse.json().tags.map((tag: { name: string }) => tag.name), ["later", "research"]);
 
   await app.close();
 });

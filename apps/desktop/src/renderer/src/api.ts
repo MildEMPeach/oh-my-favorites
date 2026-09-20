@@ -22,6 +22,19 @@ export function getConnectionConfig() {
   };
 }
 
+export async function addItemTag(id: number, tag: string) {
+  return request<Item>(`/api/items/${id}/tags`, {
+    method: "POST",
+    body: JSON.stringify({ tag })
+  });
+}
+
+export async function removeItemTag(id: number, tagId: number) {
+  return request<Item>(`/api/items/${id}/tags/${tagId}`, {
+    method: "DELETE"
+  });
+}
+
 export function saveConnectionConfig(apiUrl: string, apiToken: string) {
   localStorage.setItem("apiUrl", apiUrl.replace(/\/+$/, ""));
   localStorage.setItem("apiToken", apiToken);
@@ -29,13 +42,17 @@ export function saveConnectionConfig(apiUrl: string, apiToken: string) {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const { apiUrl, apiToken } = getConnectionConfig();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${apiToken}`
+  };
+  if (init?.body !== undefined) headers["Content-Type"] = "application/json";
+
   let response: Response;
   try {
     response = await fetch(`${apiUrl}${path}`, {
       ...init,
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiToken}`,
+        ...headers,
         ...init?.headers
       }
     });

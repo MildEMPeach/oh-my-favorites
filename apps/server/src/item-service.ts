@@ -57,7 +57,12 @@ export class ItemService {
   }
 
   async listTags() {
-    return this.db.select().from(tags).orderBy(asc(tags.name));
+    const allTags = await this.db.select().from(tags).orderBy(asc(tags.name));
+    if (allTags.length === 0) return allTags;
+
+    const relations = await this.db.select({ tagId: itemTags.tagId }).from(itemTags);
+    const usedTagIds = new Set(relations.map((relation) => relation.tagId));
+    return allTags.filter((tag) => usedTagIds.has(tag.id));
   }
 
   async setTags(itemId: number, names: string[]) {
@@ -75,6 +80,31 @@ export class ItemService {
       }
     }
 
+    await this.deleteUnusedTags();
+
+    return (await this.attachTags(item))[0];
+  }
+
+  async addTag(itemId: number, name: string) {
+    const item = await this.db.select().from(items).where(eq(items.id, itemId)).limit(1);
+    if (!item[0]) return undefined;
+
+    const normalizedName = name.trim();
+    await this.db.insert(tags).values({ name: normalizedName }).onConflictDoNothing({ target: tags.name });
+    const tag = await this.db.select().from(tags).where(eq(tags.name, normalizedName)).limit(1);
+    if (tag[0]) {
+      await this.db.insert(itemTags).values({ itemId, tagId: tag[0].id }).onConflictDoNothing();
+    }
+
+    return (await this.attachTags(item))[0];
+  }
+
+  async removeTag(itemId: number, tagId: number) {
+    const item = await this.db.select().from(items).where(eq(items.id, itemId)).limit(1);
+    if (!item[0]) return undefined;
+
+    await this.db.delete(itemTags).where(and(eq(itemTags.itemId, itemId), eq(itemTags.tagId, tagId)));
+    await this.deleteUnusedTags();
     return (await this.attachTags(item))[0];
   }
 
@@ -100,6 +130,18 @@ export class ItemService {
       title: title.trim()
     }).where(eq(items.id, id)).returning();
     return rows[0];
+  }
+
+  private async deleteUnusedTags() {
+    const allTags = await this.db.select({ id: tags.id }).from(tags);
+    if (allTags.length === 0) return;
+
+    const relations = await this.db.select({ tagId: itemTags.tagId }).from(itemTags);
+    const usedTagIds = new Set(relations.map((relation) => relation.tagId));
+    const unusedTagIds = allTags.map((tag) => tag.id).filter((id) => !usedTagIds.has(id));
+    if (unusedTagIds.length > 0) {
+      await this.db.delete(tags).where(inArray(tags.id, unusedTagIds));
+    }
   }
 
   private async attachTags<T extends { id: number }>(rows: T[]) {

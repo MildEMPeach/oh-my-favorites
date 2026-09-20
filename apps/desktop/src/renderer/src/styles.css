@@ -71,7 +71,10 @@ button { font: inherit; }
 .title-editor-actions > button:not(.icon-button) { border: 0; border-radius: 7px; padding: 6px 10px; background: #252827; color: #fff; cursor: pointer; font-size: 11px; }
 .item-card p { margin: 7px 24px 7px 17px; color: #6c7277; font-size: 12px; line-height: 1.45; max-height: 36px; overflow: hidden; }
 .item-tags { margin: 5px 17px; display: flex; flex-wrap: wrap; gap: 5px; }
-.item-tags span { padding: 2px 6px; border-radius: 5px; background: #f0f0ed; color: #73787c; font-size: 10px; }
+.item-tag-chip { padding: 2px 5px 2px 6px; border-radius: 5px; background: #f0f0ed; color: #73787c; font-size: 10px; display: inline-flex; align-items: center; gap: 2px; }
+.tag-remove-button { width: 16px; height: 16px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: inherit; display: grid; place-items: center; cursor: pointer; opacity: 0; visibility: hidden; transition: opacity 120ms ease; }
+.item-tag-chip:hover .tag-remove-button { opacity: 1; visibility: visible; }
+.tag-remove-button:hover { background: rgba(0, 0, 0, .08); color: #34383a; }
 .tag-editor { margin: 8px 17px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 5px; }
 .tag-editor input, .settings-panel input { min-width: 0; border: 1px solid #d9dad7; background: #fff; border-radius: 7px; padding: 8px 9px; outline: none; }
 .tag-editor input:focus, .settings-panel input:focus { border-color: #9da19d; }
@@ -120,8 +123,9 @@ button { font: inherit; }
 .dark-mode .item-card.selected { background: #202326; }
 .dark-mode .tag-browser-item { color: #aeb4b8; }
 .dark-mode .tag-browser-item:hover { background: #25292c; color: #f1f3f4; }
-.dark-mode .item-tags span,
+.dark-mode .item-tag-chip,
 .dark-mode .connection-status { background: #292d30; color: #aeb4b8; }
+.dark-mode .tag-remove-button:hover { background: rgba(255, 255, 255, .1); color: #f1f3f4; }
 .dark-mode .browser-host { background: #141617; }
 .dark-mode .browser-empty { color: #7f878c; }
 .dark-mode .error-card { background: #3a2528; color: #f0d7da; }

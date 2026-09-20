@@ -1,6 +1,6 @@
 import { Bookmark, Circle, Clock3, Inbox, Moon, PanelLeftClose, PanelLeftOpen, Pencil, RefreshCw, Settings, Star, Sun, Tag, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getConnectionConfig, listItems, listTags, markRead, renameItem, saveConnectionConfig, setItemTags, testConnection, toggleFavorite, type Item } from "./api";
+import { addItemTag, getConnectionConfig, listItems, listTags, markRead, removeItemTag, renameItem, saveConnectionConfig, testConnection, toggleFavorite, type Item } from "./api";
 import "./styles.css";
 
 type Filter = "all" | "unread" | "favorites";
@@ -68,20 +68,40 @@ export function App() {
 
   function openTagEditor(item: Item) {
     setEditingTagId(item.id);
-    setTagDraft(item.tags.map((tag) => tag.name).join(", "));
+    setTagDraft("");
   }
 
-  async function saveTags(item: Item) {
+  async function addTag(item: Item) {
+    const name = tagDraft.trim();
+    if (!name) return;
+
     try {
-      const names = tagDraft.split(",").map((name) => name.trim()).filter(Boolean);
-      const updated = await setItemTags(item.id, names);
+      const updated = await addItemTag(item.id, name);
       setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, ...updated } : entry));
       const refreshed = await listTags();
       setTags(refreshed.tags);
       setEditingTagId(null);
+      setTagDraft("");
       setError(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Failed to update tags");
+      setError(cause instanceof Error ? cause.message : "Failed to add tag");
+    }
+  }
+
+  async function removeTag(item: Item, tagId: number) {
+    try {
+      const updated = await removeItemTag(item.id, tagId);
+      setItems((current) => {
+        if (activeTag && !updated.tags.some((tag) => tag.name === activeTag)) {
+          return current.filter((entry) => entry.id !== item.id);
+        }
+        return current.map((entry) => entry.id === item.id ? { ...entry, ...updated } : entry);
+      });
+      const refreshed = await listTags();
+      setTags(refreshed.tags);
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Failed to remove tag");
     }
   }
 
@@ -298,10 +318,18 @@ export function App() {
                 <button className="icon-button" onClick={() => setEditingTitleId(null)}><X size={14} /></button>
               </div>}
               <p>{item.description ?? item.url}</p>
-              {item.tags?.length > 0 && <div className="item-tags">{item.tags.map((tag) => <span key={tag.id}>#{tag.name}</span>)}</div>}
+              {item.tags?.length > 0 && <div className="item-tags" onClick={(event) => event.stopPropagation()}>{item.tags.map((tag) => <span className="item-tag-chip" key={tag.id}>
+                <span>#{tag.name}</span>
+                <button
+                  className="tag-remove-button"
+                  title={`Remove #${tag.name}`}
+                  aria-label={`Remove #${tag.name}`}
+                  onClick={() => void removeTag(item, tag.id)}
+                ><X size={11} /></button>
+              </span>)}</div>}
               {editingTagId === item.id && <div className="tag-editor" onClick={(event) => event.stopPropagation()}>
-                <input value={tagDraft} onChange={(event) => setTagDraft(event.target.value)} placeholder="research, backend, later" onKeyDown={(event) => { if (event.key === "Enter") void saveTags(item); }} />
-                <button onClick={() => void saveTags(item)}>Save</button>
+                <input autoFocus value={tagDraft} onChange={(event) => setTagDraft(event.target.value)} placeholder="Add one tag" onKeyDown={(event) => { if (event.key === "Enter") void addTag(item); if (event.key === "Escape") setEditingTagId(null); }} />
+                <button onClick={() => void addTag(item)}>Add</button>
                 <button className="icon-button" onClick={() => setEditingTagId(null)}><X size={14} /></button>
               </div>}
               <time>{new Date(item.createdAt).toLocaleString()}</time>
