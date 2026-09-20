@@ -1,121 +1,220 @@
 # Oh My Favorites
 
-Single-user, self-hosted URL inbox and favorites manager. URLs can be sent from Telegram or any MCP-capable agent, stored by a small self-hosted server, and read from an Electron desktop client with an embedded browser.
+<p align="center">
+  <img src="./apps/desktop/assets/icon.png" width="140" alt="Oh My Favorites icon" />
+</p>
+
+<h3 align="center">Save now. Watch, read, and explore later.</h3>
+
+<p align="center">
+  A self-hosted, cross-platform inbox for the links you do not have time for right now.<br/>
+  Send them from your phone, Telegram, or an AI agent — then come back to one clean desktop queue.
+</p>
+
+<p align="center">
+  <a href="./README.zh-CN.md">简体中文</a>
+  ·
+  <a href="#quick-start">Quick Start</a>
+  ·
+  <a href="#agent--mcp">MCP</a>
+</p>
+
+<p align="center">
+  <img alt="Electron" src="https://img.shields.io/badge/Electron-Desktop-47848F?logo=electron&logoColor=white" />
+  <img alt="Fastify" src="https://img.shields.io/badge/Fastify-API-000000?logo=fastify&logoColor=white" />
+  <img alt="SQLite" src="https://img.shields.io/badge/SQLite-Storage-003B57?logo=sqlite&logoColor=white" />
+  <img alt="Docker" src="https://img.shields.io/badge/Docker-Self--hosted-2496ED?logo=docker&logoColor=white" />
+  <img alt="MCP" src="https://img.shields.io/badge/MCP-Agent%20ready-7C3AED" />
+</p>
+
+---
+
+## Why Oh My Favorites?
+
+Every platform has its own *Watch Later*, *Favorites*, or *Bookmarks* — and none of them talk to each other.
+
+Oh My Favorites turns all of those scattered “I will look at this later” moments into one inbox:
+
+- see a Bilibili or YouTube video on your phone → forward the link;
+- find a useful article, repository, or paper → send it to the bot;
+- ask an agent to inspect a page → let it choose a clean title and tags;
+- when you are back at your PC → process everything from one desktop app.
+
+The core idea is intentionally small:
+
+> **Capture with almost zero friction. Consume later in one place.**
+
+## Workflow
+
+```mermaid
+flowchart LR
+    A[Phone / Browser] -->|share link| B[Telegram Bot]
+    C[AI Agent] -->|MCP| D[MCP Server]
+    B --> E[OMF Server]
+    D --> E
+    E --> F[(SQLite)]
+    F --> G[Desktop Inbox]
+    G --> H{Process}
+    H -->|open| I[Read]
+    H -->|keep| J[Favorite]
+    H -->|organize| K[Tags]
+```
+
+## Highlights
+
+| | Feature | What it does |
+| --- | --- | --- |
+| 📥 | **Unified inbox** | Collect links from Telegram, desktop, or MCP-capable agents. |
+| 👀 | **Unread / read** | New saves stay unread until you actually open or explicitly update them. |
+| ⭐ | **Favorites** | Keep the items that deserve long-term attention. |
+| 🏷️ | **Tags** | Add multiple tags and browse by topic. |
+| ✏️ | **Custom titles** | Rename entries manually or let an agent supply a better title. |
+| 🤖 | **Agent-ready** | Local stdio MCP and remote Streamable HTTP MCP are both supported. |
+| 📱 | **Mobile-friendly capture** | Forward a URL to Telegram instead of fighting with browser bookmark UIs. |
+| 🖥️ | **Desktop reading** | Electron client with an embedded, isolated Chromium view. |
+| 🌗 | **Desktop UX** | Light/dark theme, collapsible navigation, timeline, unread, favorites, and tags. |
+| 🐳 | **Self-hosted** | Fastify + SQLite backend deployable with Docker Compose. |
 
 ## Architecture
 
-```text
-Telegram
-   │
-   ▼
-Server (Docker)
-Fastify + grammY + SQLite
-   ▲                 ▲
-   │ REST            │ REST
-   │                 │
-Desktop          MCP Server
-Electron          ▲       ▲
-                  │       │
-                stdio   Streamable HTTP
-                  │       │
-             Local Agent  Remote Agent
+The protocol adapters are separated from the main business service. Telegram and MCP ultimately use the same server-side item model and REST API.
+
+```mermaid
+flowchart TB
+    subgraph Capture[Capture]
+        TG[Telegram Bot]
+        LA[Local Agent]
+        RA[Remote / Docker Agent]
+    end
+
+    subgraph MCP[MCP Adapter]
+        STDIO[stdio]
+        HTTP[Streamable HTTP :8790]
+    end
+
+    subgraph Core[Oh My Favorites]
+        API[Fastify Server :8787]
+        DB[(SQLite)]
+    end
+
+    subgraph Client[Consume]
+        DESK[Electron Desktop]
+        WEB[Embedded Chromium]
+    end
+
+    TG --> API
+    LA --> STDIO --> API
+    RA --> HTTP --> API
+    API <--> DB
+    DESK <--> API
+    DESK --> WEB
 ```
 
-- `apps/server`: Fastify API + Telegram Bot.
-- `apps/desktop`: Electron + React desktop client.
-- `apps/mcp-server`: stdio MCP adapter for agents such as Hermes, Claude, Codex, or other MCP clients.
-- `packages/database`: Drizzle schema and SQLite setup.
-- `packages/shared`: shared TypeScript contracts.
+### Repository layout
 
-The desktop browser runs in a separate persistent Electron session from the app UI. Remote pages have Node.js disabled, non-HTTP(S) navigation blocked, and permission requests denied by default.
+```text
+apps/
+├── desktop/      Electron + React desktop client
+├── mcp-server/   stdio + Streamable HTTP MCP adapter
+└── server/       Fastify API + Telegram bot
 
-## Features
+packages/
+├── database/     Drizzle schema + SQLite setup
+└── shared/       Shared TypeScript contracts
+```
 
-- Telegram URL ingestion with a single allowed Telegram user ID.
-- MCP URL ingestion for external agents, with custom titles and additive tags.
-- Timeline ordered by import time.
-- Unread/read state. Opening an item marks it as read.
-- Favorites view.
-- Manual tags and tag filtering.
-- Optional custom titles; new items default to their URL when no title is supplied.
-- Page description and favicon metadata fetching.
-- SSRF-aware metadata fetching with DNS resolution checks, redirect revalidation, response-size limits and timeouts.
-- Embedded Chromium browser using Electron `WebContentsView`.
-- Self-hosted Fastify/SQLite server with Docker Compose.
+## Quick Start
 
-## Requirements
+### Requirements
 
 - Node.js 24+
 - pnpm 12+
-- Docker + Docker Compose for self-hosted server deployment
+- Docker + Docker Compose
 
-## Local development
+### 1. Install
 
 ```bash
 pnpm install
 cp .env.example .env
 ```
 
-Edit `.env` and set at least:
+At minimum, set a strong API token:
 
 ```env
 API_TOKEN=replace-with-a-long-random-token
 ```
 
-Telegram ingestion is optional during local development:
+### 2. Start the server
+
+```bash
+docker compose up -d --build
+```
+
+The REST API is available at `http://localhost:8787`.
+
+### 3. Start the desktop app
+
+```bash
+pnpm dev:desktop
+```
+
+Open **Settings** in the desktop app and configure:
+
+- Server URL: `http://localhost:8787`
+- API token: the same value as `API_TOKEN`
+
+## Telegram Capture
+
+Telegram is optional. Add these values to `.env`:
 
 ```env
 TELEGRAM_BOT_TOKEN=123456:your-bot-token
 TELEGRAM_ALLOWED_USER_ID=123456789
 ```
 
-Telegram message formats:
+Supported messages:
 
 ```text
 https://example.com
 https://example.com My custom title
 ```
 
-When text follows the URL, it is saved as the item title. When no title is supplied, the normalized URL is used as the title.
+Only the configured Telegram user ID may submit URLs.
 
-Start the server and desktop client in separate terminals:
+## Agent / MCP
 
-```bash
-pnpm dev:server
-pnpm dev:desktop
+The MCP adapter lets an agent inspect a page using its own browser, choose a useful title and tags, and save the result to Oh My Favorites.
+
+Available tools:
+
+```text
+save_url
+get_item
+list_items
+list_tags
+update_item
+add_tags
+remove_tags
 ```
 
-## MCP / agent integration
+`save_url` always keeps a newly saved item **unread**. Read state can still be changed explicitly with `update_item`.
 
-The MCP adapter lets an agent use its own browser to inspect a page, choose a title and tags, and then save it to Oh My Favorites. The MCP adapter itself intentionally does not fetch or interpret page content. It supports both local stdio and remote Streamable HTTP.
+### Local stdio MCP
 
-Build it with:
+Build it:
 
 ```bash
 pnpm build:mcp
 ```
 
-Configure an MCP client to launch:
-
-```text
-node /absolute/path/to/oh-my-favoirtes/apps/mcp-server/dist/index.js
-```
-
-with:
-
-```env
-OMF_BASE_URL=http://127.0.0.1:8787
-OMF_API_TOKEN=the-same-token-as-API_TOKEN
-```
-
-Example generic stdio MCP configuration:
+Generic client configuration:
 
 ```json
 {
   "mcpServers": {
     "oh-my-favorites": {
       "command": "node",
-      "args": ["/absolute/path/to/oh-my-favoirtes/apps/mcp-server/dist/index.js"],
+      "args": ["/absolute/path/to/oh-my-favorites/apps/mcp-server/dist/index.js"],
       "env": {
         "OMF_BASE_URL": "http://127.0.0.1:8787",
         "OMF_API_TOKEN": "your-server-api-token"
@@ -125,118 +224,89 @@ Example generic stdio MCP configuration:
 }
 ```
 
-Available tools are `save_url`, `get_item`, `list_items`, `list_tags`, `update_item`, `add_tags`, and `remove_tags`. See `apps/mcp-server/README.md` for details.
+### Remote Streamable HTTP MCP
 
-For remote MCP, add a separate token to `.env`:
+Add a separate MCP token to `.env`:
 
 ```env
 MCP_TOKEN=replace-with-a-different-long-random-token
 MCP_PORT=8790
 ```
 
-Then start the optional MCP Compose profile:
+Start both services:
 
 ```bash
 docker compose --profile mcp up -d --build
 ```
 
-Remote clients connect to `/mcp` using Streamable HTTP and send `Authorization: Bearer <MCP_TOKEN>`. For internet access, expose this endpoint through HTTPS rather than publishing plaintext HTTP directly.
+Remote MCP endpoint:
 
-In the desktop app, open **Settings** and configure:
-
-- Server URL, for example `http://localhost:8787`
-- The same API token configured on the server
-
-The connection can be tested directly from the Settings screen.
-
-## Verification
-
-```bash
-pnpm test
-pnpm typecheck
-pnpm build
+```text
+http://localhost:8790/mcp
 ```
 
-The server test suite covers API authentication, item state changes, tags/filtering, Telegram allowlist/URL extraction and metadata SSRF rules.
-
-## Self-hosted server
-
-Create the environment file:
-
-```bash
-cp .env.example .env
-```
-
-Configure it:
-
-```env
-PORT=8787
-HOST=0.0.0.0
-DATABASE_URL=./data/favorites.db
-API_TOKEN=replace-with-a-long-random-token
-TELEGRAM_BOT_TOKEN=123456:your-bot-token
-TELEGRAM_ALLOWED_USER_ID=123456789
-```
-
-Then deploy:
-
-```bash
-docker compose up -d --build
-```
-
-Check service state:
-
-```bash
-docker compose ps
-docker compose logs -f server
-```
-
-The Compose service includes an HTTP health check against `/health`. SQLite data is stored in the named Docker volume `favorites-data`, so recreating the container does not remove saved URLs.
-
-The `/api/*` endpoints require:
+Clients authenticate with:
 
 ```http
-Authorization: Bearer <API_TOKEN>
+Authorization: Bearer <MCP_TOKEN>
 ```
 
-Only `TELEGRAM_ALLOWED_USER_ID` is permitted to submit URLs through the bot. This project intentionally does not implement multi-user accounts.
+If the MCP endpoint is reachable over the public internet, put it behind HTTPS.
 
-## Desktop build and packaging
+### Hermes example
 
-Build Electron assets:
+For Hermes running in Docker Desktop on macOS:
 
 ```bash
-pnpm --filter @oh-my-favorites/desktop build
+hermes mcp add oh-my-favorites \
+  --url http://host.docker.internal:8790/mcp \
+  --auth header
 ```
 
-Package the desktop app with electron-builder:
+Enter the raw `MCP_TOKEN` value when Hermes asks for the bearer token.
+
+More details: [`apps/mcp-server/README.md`](./apps/mcp-server/README.md).
+
+## Desktop Packaging
+
+Package with electron-builder:
 
 ```bash
 pnpm --filter @oh-my-favorites/desktop package
 ```
 
-Configured targets are:
+Configured targets:
 
-- macOS: DMG and ZIP
-- Windows: NSIS installer
+- macOS: DMG + ZIP
+- Windows: NSIS
 - Linux: AppImage
 
-Packaged artifacts are written to `apps/desktop/release/`.
+Artifacts are written to `apps/desktop/release/`.
 
-## Data model
+## Data & Security
 
-`readStatus` and `isFavorite` are intentionally independent. An item can therefore be unread + favorite, read + favorite, read + not favorite, or unread + not favorite.
+- SQLite data lives in the Docker volume `favorites-data` by default.
+- `readStatus` and `isFavorite` are independent states.
+- Metadata fetching validates DNS/IP targets and redirects to reduce SSRF risk.
+- Metadata downloads use time and size limits.
+- Remote pages run in an isolated Electron browser session with Node.js disabled.
+- `/api/*` uses bearer-token authentication.
+- Remote MCP uses a separate `MCP_TOKEN`.
 
-Main tables:
+## Development
 
-- `items`
-- `tags`
-- `item_tags`
+```bash
+# server + desktop
+pnpm dev
 
-## Security notes
+# verification
+pnpm test
+pnpm typecheck
+pnpm build
+```
 
-- Keep `API_TOKEN` secret and use HTTPS when the server is exposed over the public internet.
-- The server rejects metadata targets that resolve to loopback, private, link-local, multicast, documentation and other reserved IP ranges.
-- Redirect targets are validated again before metadata requests continue.
-- Metadata downloads are limited in time and size.
-- The embedded browser is isolated from the React application and does not receive Node.js integration.
+---
+
+<p align="center">
+  <b>One inbox for everything you meant to come back to.</b>
+</p>
