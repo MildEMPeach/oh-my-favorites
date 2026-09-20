@@ -37,7 +37,9 @@ button { font: inherit; }
 .list-header div { display: grid; gap: 3px; }
 .list-header span { color: #969a9d; font-size: 12px; }
 .icon-button, .star-button { border: 0; background: transparent; cursor: pointer; border-radius: 6px; padding: 6px; color: #858b90; }
-.star-button.active { color: #202326; }
+.star-button:hover { background: #efefeb; color: #34383a; }
+.star-button.active { color: #9a6a00; background: #fff7df; }
+.star-button:disabled { cursor: wait; opacity: .55; }
 .item-list { overflow-y: auto; flex: 1; }
 .item-card { padding: 15px 16px; border-bottom: 1px solid #f0f0ed; cursor: pointer; }
 .item-card:hover, .item-card.selected { background: #fafaf8; }

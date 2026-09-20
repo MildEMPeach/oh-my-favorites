@@ -15,6 +15,7 @@ export function App() {
   const [tagDraft, setTagDraft] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [favoritePendingId, setFavoritePendingId] = useState<number | null>(null);
   const browserHost = useRef<HTMLDivElement>(null);
   const selected = useMemo(() => items.find((item) => item.id === selectedId) ?? null, [items, selectedId]);
 
@@ -93,8 +94,31 @@ export function App() {
   }
 
   async function favorite(item: Item) {
-    const updated = await toggleFavorite(item.id, !item.isFavorite);
-    setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, ...updated } : entry));
+    if (favoritePendingId === item.id) return;
+    const nextFavorite = !item.isFavorite;
+
+    setFavoritePendingId(item.id);
+    setItems((current) => current.map((entry) => entry.id === item.id
+      ? { ...entry, isFavorite: nextFavorite }
+      : entry));
+
+    try {
+      const updated = await toggleFavorite(item.id, nextFavorite);
+      setItems((current) => {
+        if (filter === "favorites" && !updated.isFavorite) {
+          return current.filter((entry) => entry.id !== item.id);
+        }
+        return current.map((entry) => entry.id === item.id ? { ...entry, ...updated } : entry);
+      });
+      setError(null);
+    } catch (cause) {
+      setItems((current) => current.map((entry) => entry.id === item.id
+        ? { ...entry, isFavorite: item.isFavorite }
+        : entry));
+      setError(cause instanceof Error ? cause.message : "Failed to update favorite");
+    } finally {
+      setFavoritePendingId(null);
+    }
   }
 
   return (
@@ -134,7 +158,14 @@ export function App() {
                 <strong>{item.title ?? new URL(item.url).hostname}</strong>
                 <div className="item-actions">
                   <button className="star-button" title="Edit tags" onClick={(event) => { event.stopPropagation(); openTagEditor(item); }}><Tag size={15} /></button>
-                  <button className={`star-button ${item.isFavorite ? "active" : ""}`} title="Favorite" onClick={(event) => { event.stopPropagation(); void favorite(item); }}>
+                  <button
+                    className={`star-button ${item.isFavorite ? "active" : ""}`}
+                    title={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                    aria-label={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                    aria-pressed={item.isFavorite}
+                    disabled={favoritePendingId === item.id}
+                    onClick={(event) => { event.stopPropagation(); void favorite(item); }}
+                  >
                     <Star size={15} fill={item.isFavorite ? "currentColor" : "none"} />
                   </button>
                 </div>
