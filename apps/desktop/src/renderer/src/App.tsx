@@ -1,4 +1,4 @@
-import { Bookmark, Circle, Clock3, Inbox, RefreshCw, Settings, Star, Tag, X } from "lucide-react";
+import { Bookmark, Circle, Clock3, Inbox, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings, Star, Tag, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getConnectionConfig, listItems, listTags, markRead, saveConnectionConfig, setItemTags, testConnection, toggleFavorite, type Item } from "./api";
 import "./styles.css";
@@ -16,6 +16,7 @@ export function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [favoritePendingId, setFavoritePendingId] = useState<number | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const browserHost = useRef<HTMLDivElement>(null);
   const selected = useMemo(() => items.find((item) => item.id === selectedId) ?? null, [items, selectedId]);
 
@@ -122,9 +123,19 @@ export function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
       <aside className="sidebar">
-        <div className="brand"><Bookmark size={20} /> Oh My Favorites</div>
+        <div className="brand">
+          <div className="brand-title"><Bookmark size={20} /><span>Oh My Favorites</span></div>
+          <button
+            className="sidebar-toggle"
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            onClick={() => setSidebarCollapsed((current) => !current)}
+          >
+            {sidebarCollapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+          </button>
+        </div>
         <nav>
           <NavButton active={!showSettings && filter === "all"} icon={<Clock3 size={17} />} label="Timeline" onClick={() => chooseFilter("all")} />
           <NavButton active={!showSettings && filter === "unread"} icon={<Inbox size={17} />} label="Unread" onClick={() => chooseFilter("unread")} />
@@ -223,5 +234,10 @@ function SettingsPanel({ onSaved }: { onSaved(): void }) {
 }
 
 function NavButton(props: { active: boolean; icon: React.ReactNode; label: string; onClick(): void }) {
-  return <button className={`nav-button ${props.active ? "active" : ""}`} onClick={props.onClick}>{props.icon}<span>{props.label}</span></button>;
+  return <button
+    className={`nav-button ${props.active ? "active" : ""}`}
+    title={props.label}
+    aria-label={props.label}
+    onClick={props.onClick}
+  >{props.icon}<span>{props.label}</span></button>;
 }
