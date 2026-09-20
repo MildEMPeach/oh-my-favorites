@@ -6,6 +6,7 @@ type ViewBounds = { x: number; y: number; width: number; height: number };
 let mainWindow: BrowserWindow | null = null;
 let browserView: WebContentsView | null = null;
 
+process.title = "Oh My Favorites";
 app.setName("Oh My Favorites");
 
 function developmentIconPath() {

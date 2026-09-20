@@ -1,5 +1,6 @@
 {
   "name": "@oh-my-favorites/desktop",
+  "productName": "Oh My Favorites",
   "version": "0.1.0",
   "private": true,
   "description": "Self-hosted URL inbox and favorites desktop client",
