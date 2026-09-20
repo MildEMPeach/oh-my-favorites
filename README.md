@@ -221,11 +221,13 @@ Start both services:
 docker compose --profile mcp up -d --build
 ```
 
-Remote MCP endpoint:
+The MCP service listens on port `8790` by default. The URL a client should use depends on where that client runs. For example, a client on the same host can use:
 
 ```text
-http://localhost:8790/mcp
+http://127.0.0.1:8790/mcp
 ```
+
+For remote machines, containers, reverse proxies, or custom networks, use the address that is actually reachable from that client. Do not assume `localhost` or a Docker-specific hostname will work across environments.
 
 Clients authenticate with:
 
@@ -235,17 +237,19 @@ Authorization: Bearer <MCP_TOKEN>
 
 If the MCP endpoint is reachable over the public internet, put it behind HTTPS.
 
-### Hermes example
+### Hermes
 
-For Hermes running in Docker Desktop on macOS:
+Hermes can connect to the remote MCP endpoint with header authentication. Replace the URL below with the MCP address that is reachable from your Hermes runtime:
 
 ```bash
 hermes mcp add oh-my-favorites \
-  --url http://host.docker.internal:8790/mcp \
+  --url https://your-mcp-host.example/mcp \
   --auth header
 ```
 
 Enter the raw `MCP_TOKEN` value when Hermes asks for the bearer token.
+
+The exact URL depends on your deployment topology. A local process, a Docker container, and a remote server may all need different hostnames or routing.
 
 More details: [`apps/mcp-server/README.md`](./apps/mcp-server/README.md).
 

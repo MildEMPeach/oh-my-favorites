@@ -223,11 +223,13 @@ MCP_PORT=8790
 docker compose --profile mcp up -d --build
 ```
 
-默认 MCP 地址：
+MCP 服务默认监听 `8790` 端口。客户端实际应该填写什么 URL，取决于客户端运行在哪里。例如客户端与 MCP 服务在同一台机器上时，可以使用：
 
 ```text
-http://localhost:8790/mcp
+http://127.0.0.1:8790/mcp
 ```
+
+如果客户端运行在远程机器、容器、反向代理或自定义网络中，请填写**该客户端实际能够访问到的地址**，不要默认 `localhost` 或某个 Docker 专用主机名一定可用。
 
 客户端需要携带：
 
@@ -237,17 +239,19 @@ Authorization: Bearer <MCP_TOKEN>
 
 如果 MCP 暴露到公网，请放在 HTTPS 反向代理后面。
 
-### Hermes 示例
+### Hermes
 
-如果 Hermes 跑在 macOS 的 Docker Desktop 中：
+Hermes 可以通过 Header 鉴权连接远程 MCP。下面只展示命令格式，请把 URL 换成 **Hermes 所在环境实际能够访问到的 MCP 地址**：
 
 ```bash
 hermes mcp add oh-my-favorites \
-  --url http://host.docker.internal:8790/mcp \
+  --url https://your-mcp-host.example/mcp \
   --auth header
 ```
 
 Hermes 要求输入 Bearer Token 时，直接填写原始 `MCP_TOKEN` 即可。
+
+具体 URL 取决于你的部署拓扑：本机进程、Docker 容器、远程服务器使用的地址都可能不同。
 
 更多细节见 [`apps/mcp-server/README.md`](./apps/mcp-server/README.md)。
 
