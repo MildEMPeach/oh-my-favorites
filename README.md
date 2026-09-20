@@ -253,22 +253,6 @@ The exact URL depends on your deployment topology. A local process, a Docker con
 
 More details: [`apps/mcp-server/README.md`](./apps/mcp-server/README.md).
 
-## Desktop Packaging
-
-Package with electron-builder:
-
-```bash
-pnpm --filter @oh-my-favorites/desktop package
-```
-
-Configured targets:
-
-- macOS: DMG + ZIP
-- Windows: NSIS
-- Linux: AppImage
-
-Artifacts are written to `apps/desktop/release/`.
-
 ## Data & Security
 
 - SQLite data lives in the Docker volume `favorites-data` by default.

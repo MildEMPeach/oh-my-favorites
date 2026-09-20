@@ -255,22 +255,6 @@ Hermes 要求输入 Bearer Token 时，直接填写原始 `MCP_TOKEN` 即可。
 
 更多细节见 [`apps/mcp-server/README.md`](./apps/mcp-server/README.md)。
 
-## 桌面端打包
-
-使用 electron-builder：
-
-```bash
-pnpm --filter @oh-my-favorites/desktop package
-```
-
-当前配置的目标：
-
-- macOS：DMG + ZIP
-- Windows：NSIS
-- Linux：AppImage
-
-构建产物输出到 `apps/desktop/release/`。
-
 ## 数据与安全
 
 - SQLite 数据默认保存在 Docker volume `favorites-data` 中。
