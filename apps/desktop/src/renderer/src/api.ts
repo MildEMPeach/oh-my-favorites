@@ -29,14 +29,19 @@ export function saveConnectionConfig(apiUrl: string, apiToken: string) {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const { apiUrl, apiToken } = getConnectionConfig();
-  const response = await fetch(`${apiUrl}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiToken}`,
-      ...init?.headers
-    }
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiUrl}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiToken}`,
+        ...init?.headers
+      }
+    });
+  } catch {
+    throw new Error(`Cannot reach server at ${apiUrl}`);
+  }
   if (!response.ok) throw new Error(`Request failed: ${response.status}`);
   return response.json() as Promise<T>;
 }

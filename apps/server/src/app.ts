@@ -5,7 +5,10 @@ import type { ItemService } from "./item-service.js";
 
 export async function buildApp(items: ItemService, apiToken: string) {
   const app = Fastify({ logger: true });
-  await app.register(cors, { origin: true });
+  await app.register(cors, {
+    origin: true,
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+  });
 
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof ZodError) {

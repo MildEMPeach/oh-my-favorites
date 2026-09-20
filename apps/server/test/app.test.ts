@@ -21,6 +21,29 @@ test("API rejects requests without the bearer token", async () => {
   await app.close();
 });
 
+test("CORS preflight allows desktop mutation methods", async () => {
+  const { app } = await createFixture();
+
+  for (const method of ["PATCH", "PUT"]) {
+    const response = await app.inject({
+      method: "OPTIONS",
+      url: "/api/items/1/favorite",
+      headers: {
+        origin: "http://localhost:5173",
+        "access-control-request-method": method,
+        "access-control-request-headers": "authorization,content-type"
+      }
+    });
+
+    assert.equal(response.statusCode, 204);
+    const allowed = response.headers["access-control-allow-methods"] ?? "";
+    assert.match(allowed, new RegExp(`(?:^|,\\s*)${method}(?:,|$)`));
+    assert.equal(response.headers["access-control-allow-origin"], "http://localhost:5173");
+  }
+
+  await app.close();
+});
+
 test("API returns 400 for invalid input and 404 for missing items", async () => {
   const { app } = await createFixture();
   const headers = { authorization: `Bearer ${TOKEN}` };

@@ -144,7 +144,7 @@ export function App() {
           <div><strong>{filter === "all" ? "Timeline" : filter === "unread" ? "Unread" : "Favorites"}</strong><span>{items.length} items</span></div>
           <button className="icon-button" onClick={() => void refresh()} title="Refresh"><RefreshCw size={16} /></button>
         </header>
-        {error && <div className="error-card">{error}<small>Configure apiUrl/apiToken in localStorage for now.</small></div>}
+        {error && <div className="error-card">{error}<small>Check Settings and confirm the server is reachable.</small></div>}
         <div className="item-list">
           {!error && items.length === 0 && <div className="list-empty">
             <Inbox size={24} />
