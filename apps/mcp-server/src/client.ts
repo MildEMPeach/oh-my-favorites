@@ -4,7 +4,6 @@ export interface SaveUrlInput {
   url: string;
   title?: string;
   tags?: string[];
-  read?: boolean;
   favorite?: boolean;
 }
 
@@ -59,12 +58,6 @@ export class OmfApiClient {
       }
     });
 
-    if (input.read !== undefined) {
-      item = await this.request<ItemDto>(`/api/items/${item.id}/read`, {
-        method: "PATCH",
-        body: { read: input.read }
-      });
-    }
     if (input.favorite !== undefined) {
       item = await this.request<ItemDto>(`/api/items/${item.id}/favorite`, {
         method: "PATCH",

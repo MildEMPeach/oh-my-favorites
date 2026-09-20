@@ -44,6 +44,7 @@ test("saveUrl sends MCP source, custom title and tags", async () => {
     title: "Agent title",
     tags: ["research", "agent"]
   });
+  assert.equal(calls.some((call) => call.url.endsWith("/read")), false);
 });
 
 test("removeTags resolves names to tag IDs and preserves other tags", async () => {

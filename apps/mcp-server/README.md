@@ -131,10 +131,9 @@ Save a URL. Supports:
 - `url` (required)
 - `title`
 - `tags`
-- `read`
 - `favorite`
 
-If the URL already exists, an explicit title updates the existing title and supplied tags are added without deleting existing tags.
+Newly saved URLs stay unread. If the URL already exists, an explicit title updates the existing title and supplied tags are added without deleting existing tags. Use `update_item` only when the user explicitly asks to change read state.
 
 ### `get_item`
 

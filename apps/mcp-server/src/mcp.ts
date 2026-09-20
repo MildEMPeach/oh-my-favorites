@@ -13,12 +13,11 @@ export function createOmfMcpServer(client: OmfApiClient) {
     {
       title: "Save URL",
       description:
-        "Save a web page to Oh My Favorites. When you have inspected the page, pass a concise human-readable title and useful semantic tags. Existing URLs are reused; an explicit title is updated and supplied tags are added without deleting existing tags.",
+        "Save a web page to Oh My Favorites as unread. When you have inspected the page, pass a concise human-readable title and useful semantic tags. Existing URLs are reused; an explicit title is updated and supplied tags are added without deleting existing tags. Saving a URL never marks it read; use update_item only when the user explicitly asks to change read state.",
       inputSchema: {
         url: z.string().url().describe("HTTP or HTTPS URL to save"),
         title: z.string().trim().min(1).max(300).optional().describe("Custom title chosen after inspecting the page"),
         tags: z.array(z.string().trim().min(1).max(64)).max(30).optional().describe("Tags to add to the saved item"),
-        read: z.boolean().optional().describe("Whether the item should immediately be marked read"),
         favorite: z.boolean().optional().describe("Whether the item should immediately be favorited")
       }
     },
@@ -63,7 +62,7 @@ export function createOmfMcpServer(client: OmfApiClient) {
     "update_item",
     {
       title: "Update saved item",
-      description: "Update the title, read state, and/or favorite state of an existing item.",
+      description: "Update the title, read state, and/or favorite state of an existing item. Only change read state when the user explicitly asks for it.",
       inputSchema: {
         id: z.number().int().positive(),
         title: z.string().trim().min(1).max(300).optional(),

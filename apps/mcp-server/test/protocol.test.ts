@@ -77,13 +77,17 @@ test("stdio MCP server initializes, lists tools and calls save_url", async () =>
       "save_url",
       "update_item"
     ]);
+    const saveUrlTool = tools.tools.find((tool) => tool.name === "save_url");
+    assert.ok(saveUrlTool);
+    assert.equal(Object.hasOwn(saveUrlTool.inputSchema.properties ?? {}, "read"), false);
 
     const result = await client.callTool({
       name: "save_url",
       arguments: {
         url: ITEM.url,
         title: ITEM.title,
-        tags: ["agent", "research"]
+        tags: ["agent", "research"],
+        read: true
       }
     });
     assert.equal(result.isError, undefined);
@@ -96,6 +100,7 @@ test("stdio MCP server initializes, lists tools and calls save_url", async () =>
       title: ITEM.title,
       tags: ["agent", "research"]
     });
+    assert.equal(requests.some((request) => request.url.endsWith("/read")), false);
   } finally {
     await client.close();
     await new Promise<void>((resolve, reject) => api.close((error) => (error ? reject(error) : resolve())));
@@ -151,7 +156,9 @@ test("remote Streamable HTTP MCP authenticates, creates a session and calls save
     assert.equal(client.getServerVersion()?.name, "oh-my-favorites");
 
     const tools = await client.listTools();
-    assert.ok(tools.tools.some((tool) => tool.name === "save_url"));
+    const saveUrlTool = tools.tools.find((tool) => tool.name === "save_url");
+    assert.ok(saveUrlTool);
+    assert.equal(Object.hasOwn(saveUrlTool.inputSchema.properties ?? {}, "read"), false);
 
     const result = await client.callTool({
       name: "save_url",
