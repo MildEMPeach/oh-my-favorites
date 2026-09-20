@@ -4,7 +4,7 @@
   <img src="./apps/desktop/assets/icon.png" width="140" alt="Oh My Favorites icon" />
 </p>
 
-<h3 align="center">做一只快乐的互联网小仓鼠</h3>
+<h3 align="center">Be a happy little internet hamster.</h3>
 
 <p align="center">
   A self-hosted, cross-platform inbox for the links you do not have time for right now.<br/>
