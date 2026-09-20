@@ -17,6 +17,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [favoritePendingId, setFavoritePendingId] = useState<number | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [itemColumnOpen, setItemColumnOpen] = useState(true);
   const browserHost = useRef<HTMLDivElement>(null);
   const selected = useMemo(() => items.find((item) => item.id === selectedId) ?? null, [items, selectedId]);
 
@@ -31,8 +32,13 @@ export function App() {
   }
 
   function chooseFilter(next: Filter) {
+    if (!showSettings && filter === next) {
+      setItemColumnOpen((current) => !current);
+      return;
+    }
     setShowSettings(false);
     setFilter(next);
+    setItemColumnOpen(true);
   }
 
   function openTagEditor(item: Item) {
@@ -55,7 +61,12 @@ export function App() {
   }
 
   function openSettings() {
+    if (showSettings) {
+      setItemColumnOpen((current) => !current);
+      return;
+    }
     setShowSettings(true);
+    setItemColumnOpen(true);
     setSelectedId(null);
     window.favorites.hideBrowser();
   }
@@ -123,7 +134,7 @@ export function App() {
   }
 
   return (
-    <main className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+    <main className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${itemColumnOpen ? "" : "item-column-collapsed"}`}>
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-title"><Bookmark size={20} /><span>Oh My Favorites</span></div>
@@ -144,13 +155,13 @@ export function App() {
         </nav>
         {tags.length > 0 && <div className="tag-nav">
           <span>Tags</span>
-          <button className={!activeTag ? "active" : ""} onClick={() => setActiveTag(undefined)}>All tags</button>
-          {tags.map((tag) => <button key={tag.id} className={activeTag === tag.name ? "active" : ""} onClick={() => setActiveTag(tag.name)}>#{tag.name}</button>)}
+          <button className={!activeTag ? "active" : ""} onClick={() => { setActiveTag(undefined); setItemColumnOpen(true); }}>All tags</button>
+          {tags.map((tag) => <button key={tag.id} className={activeTag === tag.name ? "active" : ""} onClick={() => { setActiveTag(tag.name); setItemColumnOpen(true); }}>#{tag.name}</button>)}
         </div>}
       </aside>
 
       <section className="item-column">
-        {showSettings ? <SettingsPanel onSaved={() => { setShowSettings(false); void refresh(); }} /> : <>
+        {showSettings ? <SettingsPanel onSaved={() => { setShowSettings(false); setItemColumnOpen(true); void refresh(); }} /> : <>
         <header className="list-header">
           <div><strong>{filter === "all" ? "Timeline" : filter === "unread" ? "Unread" : "Favorites"}</strong><span>{items.length} items</span></div>
           <button className="icon-button" onClick={() => void refresh()} title="Refresh"><RefreshCw size={16} /></button>
