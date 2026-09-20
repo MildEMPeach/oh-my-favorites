@@ -186,13 +186,15 @@ export function App() {
           <NavButton active={!showSettings && filter === "unread"} icon={<Inbox size={17} />} label="Unread" onClick={() => chooseFilter("unread")} />
           <NavButton active={!showSettings && filter === "favorites"} icon={<Star size={17} />} label="Favorites" onClick={() => chooseFilter("favorites")} />
           <NavButton active={showSettings} icon={<Settings size={17} />} label="Settings" onClick={openSettings} />
-          <NavButton active={false} icon={darkMode ? <Sun size={17} /> : <Moon size={17} />} label={darkMode ? "Light mode" : "Dark mode"} onClick={toggleTheme} />
         </nav>
         {tags.length > 0 && <div className="tag-nav">
           <span>Tags</span>
           <button className={!activeTag ? "active" : ""} onClick={() => { setActiveTag(undefined); setItemColumnOpen(true); }}>All tags</button>
           {tags.map((tag) => <button key={tag.id} className={activeTag === tag.name ? "active" : ""} onClick={() => { setActiveTag(tag.name); setItemColumnOpen(true); }}>#{tag.name}</button>)}
         </div>}
+        <div className="sidebar-footer">
+          <NavButton active={false} icon={darkMode ? <Sun size={17} /> : <Moon size={17} />} label={darkMode ? "Light mode" : "Dark mode"} onClick={toggleTheme} />
+        </div>
       </aside>
 
       <section className="item-column">

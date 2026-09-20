@@ -27,6 +27,8 @@ button { font: inherit; }
   padding: 22px 14px;
   border-right: 1px solid #e8e8e4;
   background: #f7f7f5;
+  display: flex;
+  flex-direction: column;
 }
 
 .brand { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 0 4px 24px 8px; font-weight: 700; }
@@ -48,6 +50,7 @@ button { font: inherit; }
 .sidebar-collapsed .nav-button { justify-content: center; padding-left: 0; padding-right: 0; }
 .sidebar-collapsed .nav-button span { display: none; }
 .sidebar-collapsed .tag-nav { display: none; }
+.sidebar-footer { margin-top: auto; }
 
 .item-column { min-width: 0; overflow: hidden; border-right: 1px solid #e8e8e4; background: #fff; display: flex; flex-direction: column; }
 .item-column-collapsed .item-column { border-right: 0; visibility: hidden; }
