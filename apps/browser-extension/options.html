@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Oh My Favorites Settings</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="settings-card">
+      <header>
+        <div class="brand-mark" aria-hidden="true">OMF</div>
+        <div>
+          <h1>Oh My Favorites</h1>
+          <p>Browser extension settings</p>
+        </div>
+      </header>
+
+      <form id="settings-form">
+        <label>
+          <span>Server URL</span>
+          <input id="api-url" type="url" required placeholder="https://favorites.example.com" />
+        </label>
+        <label>
+          <span>API Token</span>
+          <input id="api-token" type="password" required autocomplete="off" placeholder="Bearer token" />
+        </label>
+        <button type="submit">Save & Test</button>
+      </form>
+
+      <div id="status" class="status" aria-live="polite"></div>
+      <p class="hint">After setup, click the extension icon on any web page. ✓ means the page was saved; ! means the save failed.</p>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

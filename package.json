@@ -8,6 +8,7 @@
     "dev": "pnpm --parallel --filter @oh-my-favorites/server --filter @oh-my-favorites/desktop dev",
     "dev:server": "pnpm --filter @oh-my-favorites/server dev",
     "dev:desktop": "pnpm --filter @oh-my-favorites/desktop dev",
+    "build:extension": "pnpm --filter @oh-my-favorites/browser-extension build",
     "dev:mcp": "pnpm --filter @oh-my-favorites/mcp dev",
     "dev:mcp:http": "pnpm --filter @oh-my-favorites/mcp dev:http",
     "build:mcp": "pnpm --filter @oh-my-favorites/mcp build",

@@ -56,12 +56,13 @@ No platform hopping. No “where did I save that link?” Just one place to come
 
 | | Feature | What it does |
 | --- | --- | --- |
-| 📥 | **Unified inbox** | Collect links from Telegram, desktop, or MCP-capable agents. |
+| 📥 | **Unified inbox** | Collect links from Telegram, the browser extension, desktop, or MCP-capable agents. |
 | 👀 | **Unread / read** | New saves stay unread until you actually open or explicitly update them. |
 | ⭐ | **Favorites** | Keep the items that deserve long-term attention. |
 | 🏷️ | **Tags** | Add multiple tags and browse by topic. |
 | ✏️ | **Custom titles** | Rename entries manually or let an agent supply a better title. |
 | 🤖 | **Agent-ready** | Local stdio MCP and remote Streamable HTTP MCP are both supported. |
+| 🌐 | **One-click browser capture** | Click the Chrome / Edge extension icon to save the current page immediately. |
 | 📱 | **Mobile-friendly capture** | Forward a URL to Telegram instead of fighting with browser bookmark UIs. |
 | 🖥️ | **Desktop reading** | Electron client with an embedded, isolated Chromium view. |
 | 🌗 | **Desktop UX** | Light/dark theme, collapsible navigation, timeline, unread, favorites, and tags. |
@@ -74,10 +75,10 @@ The protocol adapters are separated from the main business service. Telegram and
 ```text
                 things worth saving
 
-    📱 Telegram                🤖 Agent
-         │                  stdio / HTTP
-         │                       │
-         └──────────┬────────────┘
+    📱 Telegram      🌐 Browser      🤖 Agent
+         │           Extension     stdio / HTTP
+         │               │             │
+         └───────────────┬┴─────────────┘
                     ▼
              🐹 OMF Server
               Fastify :8787
@@ -96,9 +97,10 @@ The MCP adapter can run locally over **stdio** or remotely over **Streamable HTT
 
 ```text
 apps/
-├── desktop/      Electron + React desktop client
-├── mcp-server/   stdio + Streamable HTTP MCP adapter
-└── server/       Fastify API + Telegram bot
+├── browser-extension/  Chrome / Edge one-click capture extension
+├── desktop/            Electron + React desktop client
+├── mcp-server/         stdio + Streamable HTTP MCP adapter
+└── server/             Fastify API + Telegram bot
 
 packages/
 ├── database/     Drizzle schema + SQLite setup
@@ -144,6 +146,16 @@ Open **Settings** in the desktop app and configure:
 
 - Server URL: `http://localhost:8787`
 - API token: the same value as `API_TOKEN`
+
+### 4. Load the browser extension
+
+```bash
+pnpm build:extension
+```
+
+Then open `chrome://extensions` or `edge://extensions`, enable **Developer mode**, choose **Load unpacked**, and select `apps/browser-extension/dist`.
+
+The extension opens its settings page on first install. Configure the same Server URL and API token, then click the extension icon on any HTTP/HTTPS page to save it directly to your inbox.
 
 ## Telegram Capture
 

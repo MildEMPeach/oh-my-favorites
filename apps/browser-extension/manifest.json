@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Oh My Favorites",
+  "description": "Save the current page to your Oh My Favorites inbox with one click.",
+  "version": "0.1.0",
+  "permissions": ["activeTab", "storage"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Save to Oh My Favorites"
+  },
+  "options_page": "options.html"
+}

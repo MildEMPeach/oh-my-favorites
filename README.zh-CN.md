@@ -58,12 +58,13 @@ Oh My Favorites 做的事情很简单：**把所有“现在没空看，之后�
 
 | | 功能 | 说明 |
 | --- | --- | --- |
-| 📥 | **统一 Inbox** | Telegram、桌面端、MCP Agent 的链接统一进入一个列表。 |
+| 📥 | **统一 Inbox** | Telegram、浏览器扩展、桌面端、MCP Agent 的链接统一进入一个列表。 |
 | 👀 | **已读 / 未读** | 新收藏默认未读，真正打开或明确修改后才变成已读。 |
 | ⭐ | **Favorites** | 把真正值得长期保存的内容留下。 |
 | 🏷️ | **标签** | 一个条目支持多个标签，也可以按标签浏览。 |
 | ✏️ | **自定义标题** | 手动重命名，或者让 Agent 根据页面内容生成更清晰的标题。 |
 | 🤖 | **Agent 接入** | 同时支持本地 stdio MCP 和远程 Streamable HTTP MCP。 |
+| 🌐 | **浏览器一键收集** | 点击 Chrome / Edge 扩展图标，直接保存当前页面。 |
 | 📱 | **移动端快速收集** | 手机上直接把链接转发给 Telegram Bot，不需要折腾浏览器收藏夹。 |
 | 🖥️ | **桌面端集中消费** | Electron 客户端内嵌隔离 Chromium 页面。 |
 | 🌗 | **桌面体验** | 深浅色主题、可折叠侧边栏、Timeline / Unread / Favorites / Tags。 |
@@ -76,10 +77,10 @@ Oh My Favorites 做的事情很简单：**把所有“现在没空看，之后�
 ```text
                   值得存下来的东西
 
-    📱 Telegram                🤖 Agent
-         │                  stdio / HTTP
-         │                       │
-         └──────────┬────────────┘
+    📱 Telegram      🌐 浏览器       🤖 Agent
+         │             扩展        stdio / HTTP
+         │               │             │
+         └───────────────┬┴─────────────┘
                     ▼
              🐹 OMF Server
               Fastify :8787
@@ -98,9 +99,10 @@ MCP 既可以通过本地 **stdio** 使用，也可以通过远程 **Streamable 
 
 ```text
 apps/
-├── desktop/      Electron + React 桌面客户端
-├── mcp-server/   stdio + Streamable HTTP MCP 适配器
-└── server/       Fastify API + Telegram Bot
+├── browser-extension/  Chrome / Edge 一键收集扩展
+├── desktop/            Electron + React 桌面客户端
+├── mcp-server/         stdio + Streamable HTTP MCP 适配器
+└── server/             Fastify API + Telegram Bot
 
 packages/
 ├── database/     Drizzle Schema + SQLite
@@ -146,6 +148,16 @@ pnpm dev:desktop
 
 - Server URL：`http://localhost:8787`
 - API Token：与 `.env` 中的 `API_TOKEN` 相同
+
+### 4. 加载浏览器扩展
+
+```bash
+pnpm build:extension
+```
+
+然后打开 `chrome://extensions` 或 `edge://extensions`，开启**开发者模式**，选择**加载已解压的扩展程序**，目录选择 `apps/browser-extension/dist`。
+
+扩展首次安装会自动打开设置页。填入与桌面端相同的 Server URL 和 API Token 后，在任意 HTTP/HTTPS 页面点击扩展图标即可直接保存到 Inbox。
 
 ## Telegram 快速入库
 
