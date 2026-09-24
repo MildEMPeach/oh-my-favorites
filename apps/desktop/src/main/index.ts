@@ -98,6 +98,10 @@ ipcMain.on("browser:hide", () => {
   browserView?.setVisible(false);
 });
 
+ipcMain.on("browser:show", () => {
+  browserView?.setVisible(true);
+});
+
 app.whenReady().then(() => {
   if (process.platform === "darwin" && process.env.ELECTRON_RENDERER_URL) {
     app.dock?.setIcon(developmentIconPath());

@@ -21,6 +21,9 @@ export function App() {
   const [favoritePendingId, setFavoritePendingId] = useState<number | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [itemColumnOpen, setItemColumnOpen] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(() => Number(localStorage.getItem("sidebarWidth")) || 210);
+  const [itemColumnWidth, setItemColumnWidth] = useState(() => Number(localStorage.getItem("itemColumnWidth")) || 360);
+  const [resizing, setResizing] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("theme") === "dark");
   const browserHost = useRef<HTMLDivElement>(null);
   const selected = useMemo(() => items.find((item) => item.id === selectedId) ?? null, [items, selectedId]);
@@ -32,6 +35,69 @@ export function App() {
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Failed to load items");
+    }
+  }
+
+  function startResize(target: "sidebar" | "items", event: React.PointerEvent<HTMLDivElement>) {
+    if ((target === "sidebar" && sidebarCollapsed) || (target === "items" && !itemColumnOpen)) return;
+
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = target === "sidebar" ? sidebarWidth : itemColumnWidth;
+    const sidebarRenderedWidth = sidebarCollapsed ? 56 : sidebarWidth;
+    const itemRenderedWidth = itemColumnOpen ? itemColumnWidth : 0;
+    const minWidth = target === "sidebar" ? 160 : 280;
+    const temporarilyHideBrowser = target === "items" && selected !== null;
+
+    setResizing(true);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    if (temporarilyHideBrowser) window.favorites.hideBrowser();
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const otherWidth = target === "sidebar" ? itemRenderedWidth : sidebarRenderedWidth;
+      const maxWidth = Math.max(minWidth, window.innerWidth - otherWidth - 320);
+      const nextWidth = Math.min(maxWidth, Math.max(minWidth, startWidth + delta));
+
+      if (target === "sidebar") {
+        setSidebarWidth(nextWidth);
+      } else {
+        setItemColumnWidth(nextWidth);
+      }
+    };
+
+    const finishResize = () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", finishResize);
+      window.removeEventListener("pointercancel", finishResize);
+      window.removeEventListener("blur", finishResize);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      setResizing(false);
+      if (temporarilyHideBrowser) window.favorites.showBrowser();
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", finishResize, { once: true });
+    window.addEventListener("pointercancel", finishResize, { once: true });
+    window.addEventListener("blur", finishResize, { once: true });
+  }
+
+  function resizeWithKeyboard(target: "sidebar" | "items", event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    const delta = event.key === "ArrowLeft" ? -20 : 20;
+    const minWidth = target === "sidebar" ? 160 : 280;
+    const otherWidth = target === "sidebar"
+      ? (itemColumnOpen ? itemColumnWidth : 0)
+      : (sidebarCollapsed ? 56 : sidebarWidth);
+    const maxWidth = Math.max(minWidth, window.innerWidth - otherWidth - 320);
+
+    if (target === "sidebar") {
+      setSidebarWidth((current) => Math.min(maxWidth, Math.max(minWidth, current + delta)));
+    } else {
+      setItemColumnWidth((current) => Math.min(maxWidth, Math.max(minWidth, current + delta)));
     }
   }
 
@@ -170,6 +236,14 @@ export function App() {
   }, [darkMode]);
 
   useEffect(() => {
+    localStorage.setItem("sidebarWidth", String(Math.round(sidebarWidth)));
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    localStorage.setItem("itemColumnWidth", String(Math.round(itemColumnWidth)));
+  }, [itemColumnWidth]);
+
+  useEffect(() => {
     const element = browserHost.current;
     if (!element) return;
     const sync = () => {
@@ -224,7 +298,13 @@ export function App() {
   }
 
   return (
-    <main className={`app-shell ${darkMode ? "dark-mode" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${itemColumnOpen ? "" : "item-column-collapsed"}`}>
+    <main
+      className={`app-shell ${darkMode ? "dark-mode" : ""} ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${itemColumnOpen ? "" : "item-column-collapsed"} ${resizing ? "resizing" : ""}`}
+      style={{
+        "--sidebar-width": `${sidebarWidth}px`,
+        "--item-column-width": `${itemColumnWidth}px`,
+      } as React.CSSProperties}
+    >
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-title"><Bookmark size={20} /><span>Oh My Favorites</span></div>
@@ -248,6 +328,16 @@ export function App() {
           <NavButton active={false} icon={darkMode ? <Sun size={17} /> : <Moon size={17} />} label={darkMode ? "Light mode" : "Dark mode"} onClick={toggleTheme} />
         </div>
       </aside>
+
+      <div
+        className="pane-resizer sidebar-resizer"
+        role="separator"
+        aria-label="Resize sidebar"
+        aria-orientation="vertical"
+        tabIndex={sidebarCollapsed ? -1 : 0}
+        onPointerDown={(event) => startResize("sidebar", event)}
+        onKeyDown={(event) => resizeWithKeyboard("sidebar", event)}
+      />
 
       <section className="item-column">
         {showSettings ? <SettingsPanel onSaved={() => { setShowSettings(false); setItemColumnOpen(true); void refresh(); }} /> : showTags ? <>
@@ -338,6 +428,16 @@ export function App() {
         </div>
         </>}
       </section>
+
+      <div
+        className="pane-resizer item-resizer"
+        role="separator"
+        aria-label="Resize item list"
+        aria-orientation="vertical"
+        tabIndex={itemColumnOpen ? 0 : -1}
+        onPointerDown={(event) => startResize("items", event)}
+        onKeyDown={(event) => resizeWithKeyboard("items", event)}
+      />
 
       <section ref={browserHost} className="browser-host">
         {!selected && <div className="browser-empty"><Bookmark size={28} /><span>Select an item to open it here.</span></div>}

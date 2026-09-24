@@ -6,6 +6,7 @@ declare global {
       openUrl(url: string): Promise<void>;
       setBrowserBounds(bounds: { x: number; y: number; width: number; height: number }): void;
       hideBrowser(): void;
+      showBrowser(): void;
     };
   }
 }
