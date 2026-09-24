@@ -1,4 +1,4 @@
-import { Bookmark, Check, Circle, Clock3, Inbox, Moon, PanelLeftClose, PanelLeftOpen, Pencil, RefreshCw, Settings, Star, Sun, Tag, X } from "lucide-react";
+import { Bookmark, Check, Circle, Clock3, Inbox, Moon, PanelLeftClose, PanelLeftOpen, Pencil, RefreshCw, Search, Settings, Star, Sun, Tag, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addItemTag, getConnectionConfig, listItems, listTags, markRead, removeItemTag, renameItem, saveConnectionConfig, setReadStatus, testConnection, toggleFavorite, type Item } from "./api";
 import "./styles.css";
@@ -19,6 +19,7 @@ export function App() {
   const [showTags, setShowTags] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [favoritePendingId, setFavoritePendingId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<number>>(() => new Set());
   const [batchPending, setBatchPending] = useState(false);
@@ -30,6 +31,11 @@ export function App() {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("theme") === "dark");
   const browserHost = useRef<HTMLDivElement>(null);
   const selected = useMemo(() => items.find((item) => item.id === selectedId) ?? null, [items, selectedId]);
+  const visibleItems = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    if (!query) return items;
+    return items.filter((item) => item.title?.toLocaleLowerCase().includes(query));
+  }, [items, searchQuery]);
 
   async function refresh() {
     try {
@@ -166,9 +172,14 @@ export function App() {
   }
 
   function toggleSelectAll() {
-    setSelectedItemIds((current) => current.size === items.length
-      ? new Set()
-      : new Set(items.map((item) => item.id)));
+    const visibleIds = visibleItems.map((item) => item.id);
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedItemIds.has(id));
+    setSelectedItemIds((current) => {
+      const next = new Set(current);
+      if (allVisibleSelected) visibleIds.forEach((id) => next.delete(id));
+      else visibleIds.forEach((id) => next.add(id));
+      return next;
+    });
   }
 
   async function batchSetRead(read: boolean) {
@@ -307,6 +318,15 @@ export function App() {
   }, [itemColumnWidth]);
 
   useEffect(() => {
+    const visibleIds = new Set(visibleItems.map((item) => item.id));
+    setSelectedItemIds((current) => {
+      const next = new Set([...current].filter((id) => visibleIds.has(id)));
+      if (next.size === current.size && [...next].every((id) => current.has(id))) return current;
+      return next;
+    });
+  }, [visibleItems]);
+
+  useEffect(() => {
     const element = browserHost.current;
     if (!element) return;
     const sync = () => {
@@ -428,22 +448,36 @@ export function App() {
         </div>
         </> : <>
         <header className="list-header">
-          <div><strong>{activeTag ? `#${activeTag}` : filter === "all" ? "Timeline" : filter === "unread" ? "Unread" : "Favorites"}</strong><span>{items.length} items</span></div>
+          <div>
+            <strong>{activeTag ? `#${activeTag}` : filter === "all" ? "Timeline" : filter === "unread" ? "Unread" : "Favorites"}</strong>
+            <span>{searchQuery.trim() ? `${visibleItems.length} of ${items.length} items` : `${items.length} items`}</span>
+          </div>
           <div className="list-header-actions">
-            {items.length > 0 && (selectionMode
+            {visibleItems.length > 0 && (selectionMode
               ? <button className="text-button" onClick={exitSelectionMode}>Cancel</button>
               : <button className="text-button" onClick={enterSelectionMode}>Select</button>)}
             <button className="icon-button" onClick={() => void refresh()} title="Refresh"><RefreshCw size={16} /></button>
           </div>
         </header>
+        <div className="search-bar">
+          <Search size={15} />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search titles"
+            aria-label="Search item titles"
+          />
+          {searchQuery && <button className="search-clear" onClick={() => setSearchQuery("")} title="Clear search" aria-label="Clear search"><X size={14} /></button>}
+        </div>
         {selectionMode && <div className="batch-toolbar">
           <button
-            className={`batch-select-all ${items.length > 0 && selectedItemIds.size === items.length ? "active" : ""}`}
+            className={`batch-select-all ${visibleItems.length > 0 && visibleItems.every((item) => selectedItemIds.has(item.id)) ? "active" : ""}`}
             onClick={toggleSelectAll}
-            disabled={items.length === 0 || batchPending}
+            disabled={visibleItems.length === 0 || batchPending}
           >
-            <span className="selection-box">{items.length > 0 && selectedItemIds.size === items.length && <Check size={13} />}</span>
-            {items.length > 0 && selectedItemIds.size === items.length ? "Clear all" : "Select all"}
+            <span className="selection-box">{visibleItems.length > 0 && visibleItems.every((item) => selectedItemIds.has(item.id)) && <Check size={13} />}</span>
+            {visibleItems.length > 0 && visibleItems.every((item) => selectedItemIds.has(item.id)) ? "Clear all" : "Select all"}
           </button>
           <span className="batch-count">{selectedItemIds.size} selected</span>
           <div className="batch-actions">
@@ -458,7 +492,12 @@ export function App() {
             <strong>No items here</strong>
             <span>{activeTag ? `Nothing matches #${activeTag}.` : filter === "unread" ? "You have no unread items." : filter === "favorites" ? "You have not favorited anything yet." : "Send a URL to your Telegram bot to get started."}</span>
           </div>}
-          {items.map((item) => (
+          {!error && items.length > 0 && visibleItems.length === 0 && <div className="list-empty">
+            <Search size={24} />
+            <strong>No matching titles</strong>
+            <span>Try a different search term.</span>
+          </div>}
+          {visibleItems.map((item) => (
             <article
               key={item.id}
               className={`item-card ${selectedId === item.id && !selectionMode ? "selected" : ""} ${selectedItemIds.has(item.id) ? "batch-selected" : ""} ${selectionMode ? "selection-mode" : ""}`}
