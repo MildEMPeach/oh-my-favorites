@@ -1,6 +1,6 @@
-import { Bookmark, Circle, Clock3, Inbox, Moon, PanelLeftClose, PanelLeftOpen, Pencil, RefreshCw, Settings, Star, Sun, Tag, X } from "lucide-react";
+import { Bookmark, Check, Circle, Clock3, Inbox, Moon, PanelLeftClose, PanelLeftOpen, Pencil, RefreshCw, Settings, Star, Sun, Tag, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { addItemTag, getConnectionConfig, listItems, listTags, markRead, removeItemTag, renameItem, saveConnectionConfig, testConnection, toggleFavorite, type Item } from "./api";
+import { addItemTag, getConnectionConfig, listItems, listTags, markRead, removeItemTag, renameItem, saveConnectionConfig, setReadStatus, testConnection, toggleFavorite, type Item } from "./api";
 import "./styles.css";
 
 type Filter = "all" | "unread" | "favorites";
@@ -19,6 +19,9 @@ export function App() {
   const [showTags, setShowTags] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [favoritePendingId, setFavoritePendingId] = useState<number | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<number>>(() => new Set());
+  const [batchPending, setBatchPending] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [itemColumnOpen, setItemColumnOpen] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(() => Number(localStorage.getItem("sidebarWidth")) || 210);
@@ -32,6 +35,10 @@ export function App() {
     try {
       const result = await listItems(filter, activeTag);
       setItems(result.items);
+      setSelectedItemIds((current) => {
+        const visibleIds = new Set(result.items.map((item) => item.id));
+        return new Set([...current].filter((id) => visibleIds.has(id)));
+      });
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Failed to load items");
@@ -121,6 +128,10 @@ export function App() {
   }
 
   function chooseFilter(next: Filter) {
+    if (selectionMode) {
+      exitSelectionMode();
+      if (!showSettings && !showTags && !activeTag && filter === next) return;
+    }
     if (!showSettings && !showTags && !activeTag && filter === next) {
       setItemColumnOpen((current) => !current);
       return;
@@ -130,6 +141,55 @@ export function App() {
     setActiveTag(undefined);
     setFilter(next);
     setItemColumnOpen(true);
+    exitSelectionMode();
+  }
+
+  function exitSelectionMode() {
+    setSelectionMode(false);
+    setSelectedItemIds(new Set());
+  }
+
+  function enterSelectionMode() {
+    setEditingTagId(null);
+    setEditingTitleId(null);
+    setSelectionMode(true);
+    setSelectedItemIds(new Set());
+  }
+
+  function toggleItemSelection(id: number) {
+    setSelectedItemIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedItemIds((current) => current.size === items.length
+      ? new Set()
+      : new Set(items.map((item) => item.id)));
+  }
+
+  async function batchSetRead(read: boolean) {
+    const ids = [...selectedItemIds];
+    if (ids.length === 0 || batchPending) return;
+
+    setBatchPending(true);
+    try {
+      const updatedItems = await Promise.all(ids.map((id) => setReadStatus(id, read)));
+      const updatedById = new Map(updatedItems.map((item) => [item.id, item]));
+      setItems((current) => current
+        .map((item) => updatedById.get(item.id) ?? item)
+        .filter((item) => !(filter === "unread" && item.readStatus === "read")));
+      setSelectedItemIds(new Set());
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Failed to update selected items");
+      await refresh();
+    } finally {
+      setBatchPending(false);
+    }
   }
 
   function openTagEditor(item: Item) {
@@ -181,6 +241,7 @@ export function App() {
     setActiveTag(undefined);
     setItemColumnOpen(true);
     setSelectedId(null);
+    exitSelectionMode();
     window.favorites.hideBrowser();
   }
 
@@ -194,6 +255,7 @@ export function App() {
     setShowTags(true);
     setActiveTag(undefined);
     setItemColumnOpen(true);
+    exitSelectionMode();
     await refreshTags();
   }
 
@@ -213,6 +275,7 @@ export function App() {
     setFilter("all");
     setActiveTag(tag);
     setItemColumnOpen(true);
+    exitSelectionMode();
   }
 
   function toggleTheme() {
@@ -261,6 +324,10 @@ export function App() {
   }, []);
 
   async function open(item: Item) {
+    if (selectionMode) {
+      toggleItemSelection(item.id);
+      return;
+    }
     setSelectedId(item.id);
     await window.favorites.openUrl(item.url);
     if (item.readStatus === "unread") {
@@ -362,8 +429,28 @@ export function App() {
         </> : <>
         <header className="list-header">
           <div><strong>{activeTag ? `#${activeTag}` : filter === "all" ? "Timeline" : filter === "unread" ? "Unread" : "Favorites"}</strong><span>{items.length} items</span></div>
-          <button className="icon-button" onClick={() => void refresh()} title="Refresh"><RefreshCw size={16} /></button>
+          <div className="list-header-actions">
+            {items.length > 0 && (selectionMode
+              ? <button className="text-button" onClick={exitSelectionMode}>Cancel</button>
+              : <button className="text-button" onClick={enterSelectionMode}>Select</button>)}
+            <button className="icon-button" onClick={() => void refresh()} title="Refresh"><RefreshCw size={16} /></button>
+          </div>
         </header>
+        {selectionMode && <div className="batch-toolbar">
+          <button
+            className={`batch-select-all ${items.length > 0 && selectedItemIds.size === items.length ? "active" : ""}`}
+            onClick={toggleSelectAll}
+            disabled={items.length === 0 || batchPending}
+          >
+            <span className="selection-box">{items.length > 0 && selectedItemIds.size === items.length && <Check size={13} />}</span>
+            {items.length > 0 && selectedItemIds.size === items.length ? "Clear all" : "Select all"}
+          </button>
+          <span className="batch-count">{selectedItemIds.size} selected</span>
+          <div className="batch-actions">
+            <button disabled={selectedItemIds.size === 0 || batchPending} onClick={() => void batchSetRead(true)}>Mark read</button>
+            <button disabled={selectedItemIds.size === 0 || batchPending} onClick={() => void batchSetRead(false)}>Mark unread</button>
+          </div>
+        </div>}
         {error && <div className="error-card">{error}<small>Check Settings and confirm the server is reachable.</small></div>}
         <div className="item-list">
           {!error && items.length === 0 && <div className="list-empty">
@@ -372,8 +459,20 @@ export function App() {
             <span>{activeTag ? `Nothing matches #${activeTag}.` : filter === "unread" ? "You have no unread items." : filter === "favorites" ? "You have not favorited anything yet." : "Send a URL to your Telegram bot to get started."}</span>
           </div>}
           {items.map((item) => (
-            <article key={item.id} className={`item-card ${selectedId === item.id ? "selected" : ""}`} onClick={() => void open(item)}>
-              <div className="item-title-row">
+            <article
+              key={item.id}
+              className={`item-card ${selectedId === item.id && !selectionMode ? "selected" : ""} ${selectedItemIds.has(item.id) ? "batch-selected" : ""} ${selectionMode ? "selection-mode" : ""}`}
+              onClick={() => void open(item)}
+            >
+              <div className={`item-title-row ${selectionMode ? "selecting" : ""}`}>
+                {selectionMode && <button
+                  className={`batch-checkbox ${selectedItemIds.has(item.id) ? "active" : ""}`}
+                  aria-label={selectedItemIds.has(item.id) ? "Deselect item" : "Select item"}
+                  aria-pressed={selectedItemIds.has(item.id)}
+                  onClick={(event) => { event.stopPropagation(); toggleItemSelection(item.id); }}
+                >
+                  {selectedItemIds.has(item.id) && <Check size={13} />}
+                </button>}
                 <Circle size={9} fill={item.readStatus === "unread" ? "currentColor" : "none"} />
                 {editingTitleId === item.id ? (
                   <input
@@ -388,7 +487,7 @@ export function App() {
                     }}
                   />
                 ) : <strong>{item.title ?? new URL(item.url).hostname}</strong>}
-                <div className="item-actions">
+                {!selectionMode && <div className="item-actions">
                   <button className="star-button" title="Rename" aria-label="Rename" onClick={(event) => { event.stopPropagation(); openTitleEditor(item); }}><Pencil size={15} /></button>
                   <button className="star-button" title="Edit tags" onClick={(event) => { event.stopPropagation(); openTagEditor(item); }}><Tag size={15} /></button>
                   <button
@@ -401,7 +500,7 @@ export function App() {
                   >
                     <Star size={15} fill={item.isFavorite ? "currentColor" : "none"} />
                   </button>
-                </div>
+                </div>}
               </div>
               {editingTitleId === item.id && <div className="title-editor-actions" onClick={(event) => event.stopPropagation()}>
                 <button onClick={() => void saveTitle(item)}>Save</button>

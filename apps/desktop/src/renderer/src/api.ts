@@ -76,11 +76,15 @@ export async function listTags() {
   return request<{ tags: { id: number; name: string }[] }>("/api/tags");
 }
 
-export async function markRead(id: number) {
+export async function setReadStatus(id: number, read: boolean) {
   return request<Item>(`/api/items/${id}/read`, {
     method: "PATCH",
-    body: JSON.stringify({ read: true })
+    body: JSON.stringify({ read })
   });
+}
+
+export async function markRead(id: number) {
+  return setReadStatus(id, true);
 }
 
 export async function toggleFavorite(id: number, favorite: boolean) {
