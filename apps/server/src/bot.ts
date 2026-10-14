@@ -7,7 +7,7 @@ export async function processTelegramText(
   fromUserId: number,
   text: string,
   allowedUserId: number,
-  save: (url: string, source: "telegram", title?: string) => Promise<{ url: string; title?: string | null }>
+  save: (url: string, source: "telegram", title?: string) => Promise<{ url: string; title?: string | null } | undefined>
 ) {
   if (fromUserId !== allowedUserId) return "Unauthorized.";
 
@@ -19,6 +19,7 @@ export async function processTelegramText(
 
   try {
     const item = await save(url, "telegram", title);
+    if (!item) return "This URL belongs to an archived record.";
     return `Saved: ${item.url}`;
   } catch {
     return "Invalid URL.";

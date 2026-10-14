@@ -10,6 +10,7 @@
     "icons": "node scripts/generate-icons.mjs",
     "dev": "pnpm icons && electron-vite dev",
     "build": "electron-vite build",
+    "test": "node --test test/*.test.mjs",
     "package": "pnpm icons && pnpm build && electron-builder",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

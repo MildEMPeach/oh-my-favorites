@@ -60,14 +60,15 @@ Oh My Favorites 做的事情很简单：**把所有“现在没空看，之后�
 | --- | --- | --- |
 | 📥 | **统一 Inbox** | Telegram、浏览器扩展、桌面端、MCP Agent 的链接统一进入一个列表。 |
 | 👀 | **已读 / 未读** | 新收藏默认未读，真正打开或明确修改后才变成已读。 |
-| ⭐ | **Favorites** | 把真正值得长期保存的内容留下。 |
+| ⭐ | **Favorites** | 收藏网页，编辑笔记、分类和内容日期，按分类、标签及正文搜索。 |
 | 🏷️ | **标签** | 一个条目支持多个标签，也可以按标签浏览。 |
 | ✏️ | **自定义标题** | 手动重命名，或者让 Agent 根据页面内容生成更清晰的标题。 |
+| 🗑️ | **删除项目** | 在 Collected 或 Favorites 中确认删除，清理条目及标签关联。 |
 | 🤖 | **Agent 接入** | 同时支持本地 stdio MCP 和远程 Streamable HTTP MCP。 |
 | 🌐 | **浏览器一键收集** | 点击 Chrome / Edge 扩展图标，直接保存当前页面。 |
 | 📱 | **移动端快速收集** | 手机上直接把链接转发给 Telegram Bot，不需要折腾浏览器收藏夹。 |
-| 🖥️ | **桌面端集中消费** | Electron 客户端内嵌隔离 Chromium 页面。 |
-| 🌗 | **桌面体验** | 深浅色主题、可折叠侧边栏、Timeline / Unread / Favorites / Tags。 |
+| 🖥️ | **桌面端集中消费** | 使用内嵌隔离 Chromium 页面阅读，或点击项目旁的按钮在默认浏览器打开。 |
+| 🌗 | **桌面体验** | 深浅色主题、可折叠侧边栏、Collected / Unread / Favorites / Tags。 |
 | 🐳 | **自托管** | Fastify + SQLite，可直接使用 Docker Compose 部署。 |
 
 ## 架构
@@ -158,6 +159,16 @@ pnpm build:extension
 然后打开 `chrome://extensions` 或 `edge://extensions`，开启**开发者模式**，选择**加载已解压的扩展程序**，目录选择 `apps/browser-extension/dist`。
 
 扩展首次安装会自动打开设置页。填入与桌面端相同的 Server URL 和 API Token 后，在任意 HTTP/HTTPS 页面点击扩展图标即可直接保存到 Inbox。
+
+## 收藏与标签
+
+**Collected / Unread** 用于稍后消费网页。打开内嵌阅读器或默认浏览器阅读，再将值得留下的内容标为收藏。收集与收藏共用同一条目、阅读状态、笔记和标签。
+
+在 **Favorites → New** 填写标题和网页 URL，可以直接添加网页收藏。点击条目旁的 **Notes** 编辑正文、分类和内容日期。已有笔记继续保留；正文保存 Markdown 文本，暂不提供排版预览。未保存修改在切换条目或关闭窗口前会提示确认。
+
+通过每条记录的标签按钮添加、删除标签。侧栏 **Tags** 跨收集和收藏查看；Favorites 内的标签筛选只筛当前收藏。
+
+升级时请同时更新服务端和桌面端。SQLite 在服务启动时自动升级，保留原有记录；旧扩展的数据保留在已有数据库中，不再出现在应用中。开发范围见 [docs/library-development.md](./docs/library-development.md)。
 
 ## Telegram 快速入库
 

@@ -2,7 +2,7 @@ import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core
 
 export const items = sqliteTable("items", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  url: text("url").notNull(),
+  url: text("url"),
   title: text("title"),
   description: text("description"),
   faviconUrl: text("favicon_url"),
@@ -11,7 +11,11 @@ export const items = sqliteTable("items", {
   isFavorite: integer("is_favorite", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   readAt: integer("read_at", { mode: "timestamp_ms" }),
-  favoritedAt: integer("favorited_at", { mode: "timestamp_ms" })
+  favoritedAt: integer("favorited_at", { mode: "timestamp_ms" }),
+  area: text("area", { enum: ["inbox", "library"] }).notNull().default("inbox"),
+  notes: text("notes").notNull().default(""),
+  collection: text("collection"),
+  contentDate: text("content_date")
 }, (table) => [
   uniqueIndex("items_url_unique").on(table.url)
 ]);

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createDatabase } from "@oh-my-favorites/database";
+import { sql } from "drizzle-orm";
+import { createDatabase, itemTags, tags } from "@oh-my-favorites/database";
 import { buildApp } from "../src/app.js";
 import { ItemService } from "../src/item-service.js";
 
@@ -10,7 +11,7 @@ async function createFixture() {
   const db = createDatabase(":memory:");
   const service = new ItemService(db);
   const app = await buildApp(service, TOKEN);
-  return { app };
+  return { app, db };
 }
 
 test("API rejects requests without the bearer token", async () => {
@@ -89,6 +90,72 @@ test("CORS preflight allows desktop mutation methods", async () => {
   }
 
   await app.close();
+});
+
+test("deleting an item removes it from all lists and cleans up only unused tags", async (t) => {
+  const { app, db } = await createFixture();
+  t.after(() => app.close());
+  const headers = { authorization: `Bearer ${TOKEN}` };
+  const created = (await app.inject({
+    method: "POST", url: "/api/items", headers,
+    payload: { url: "http://127.0.0.1/delete-me", tags: ["shared", "unused"] }
+  })).json();
+  const kept = (await app.inject({
+    method: "POST", url: "/api/items", headers,
+    payload: { url: "http://127.0.0.1/keep-me", tags: ["shared"] }
+  })).json();
+  await app.inject({
+    method: "PATCH", url: `/api/items/${created.id}/favorite`, headers,
+    payload: { favorite: true }
+  });
+
+  const unauthorized = await app.inject({ method: "DELETE", url: `/api/items/${created.id}` });
+  assert.equal(unauthorized.statusCode, 401);
+  assert.equal((await app.inject({ method: "GET", url: `/api/items/${created.id}`, headers })).statusCode, 200);
+
+  for (const id of ["not-a-number", "0", "-1", "1.5"]) {
+    const invalid = await app.inject({ method: "DELETE", url: `/api/items/${id}`, headers });
+    assert.equal(invalid.statusCode, 400);
+  }
+  const deleted = await app.inject({ method: "DELETE", url: `/api/items/${created.id}`, headers });
+  assert.equal(deleted.statusCode, 200);
+  assert.deepEqual(deleted.json(), { ok: true });
+  assert.equal((await app.inject({ method: "GET", url: `/api/items/${created.id}`, headers })).statusCode, 404);
+  for (const query of ["", "?favorite=true", "?status=unread", "?tag=shared"]) {
+    const listed = await app.inject({ method: "GET", url: `/api/items${query}`, headers });
+    assert.ok(listed.json().items.every((item: { id: number }) => item.id !== created.id));
+  }
+  assert.deepEqual(await db.select().from(itemTags), [{ itemId: kept.id, tagId: kept.tags[0].id }]);
+  assert.deepEqual((await db.select().from(tags)).map((tag) => tag.name), ["shared"]);
+  assert.equal((await app.inject({ method: "GET", url: `/api/items/${kept.id}`, headers })).statusCode, 200);
+  const missing = await app.inject({ method: "DELETE", url: `/api/items/${created.id}`, headers });
+  assert.equal(missing.statusCode, 404);
+  assert.deepEqual(missing.json(), { error: "not_found" });
+  const resaved = await app.inject({
+    method: "POST", url: "/api/items", headers,
+    payload: { url: created.url }
+  });
+  assert.equal(resaved.statusCode, 201);
+  assert.notEqual(resaved.json().id, created.id);
+});
+
+test("failed tag cleanup rolls back item deletion and its tag links", async (t) => {
+  const { app, db } = await createFixture();
+  t.after(() => app.close());
+  const headers = { authorization: `Bearer ${TOKEN}` };
+  const created = (await app.inject({
+    method: "POST", url: "/api/items", headers,
+    payload: { url: "http://127.0.0.1/rollback", tags: ["keep"] }
+  })).json();
+  db.run(sql`CREATE TRIGGER block_tag_cleanup BEFORE DELETE ON tags
+    BEGIN SELECT RAISE(ABORT, 'cleanup failed'); END;`);
+
+  const response = await app.inject({ method: "DELETE", url: `/api/items/${created.id}`, headers });
+  assert.equal(response.statusCode, 500);
+  const restored = await app.inject({ method: "GET", url: `/api/items/${created.id}`, headers });
+  assert.equal(restored.statusCode, 200);
+  assert.deepEqual(restored.json(), created);
+  assert.deepEqual(await db.select().from(itemTags), [{ itemId: created.id, tagId: created.tags[0].id }]);
 });
 
 test("API returns 400 for invalid input and 404 for missing items", async () => {

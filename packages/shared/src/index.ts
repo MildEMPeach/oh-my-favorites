@@ -1,13 +1,19 @@
 export type ReadStatus = "unread" | "read";
+export interface LibraryFields {
+  notes: string;
+  collection: string | null;
+  contentDate: string | null;
+}
 
 export interface TagDto {
   id: number;
   name: string;
 }
 
-export interface ItemDto {
+export interface ItemDto extends LibraryFields {
   id: number;
-  url: string;
+  url: string | null;
+  area: "inbox" | "library";
   title: string | null;
   description: string | null;
   faviconUrl: string | null;

@@ -2,6 +2,7 @@ import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { z, ZodError } from "zod";
 import type { ItemService } from "./item-service.js";
+import { httpUrl, createLibraryInput, libraryInput } from "./library-input.js";
 
 export async function buildApp(items: ItemService, apiToken: string) {
   const app = Fastify({ logger: true });
@@ -31,14 +32,16 @@ export async function buildApp(items: ItemService, apiToken: string) {
     const query = z.object({
       status: z.enum(["unread", "read"]).optional(),
       favorite: z.enum(["true", "false"]).optional(),
-      tag: z.string().min(1).optional()
+      tag: z.string().min(1).optional(),
+      view: z.enum(["inbox", "favorites"]).optional()
     }).parse(request.query);
 
     return {
       items: await items.list({
         status: query.status,
         favorite: query.favorite === undefined ? undefined : query.favorite === "true",
-        tag: query.tag
+        tag: query.tag,
+        view: query.view
       })
     };
   });
@@ -51,6 +54,31 @@ export async function buildApp(items: ItemService, apiToken: string) {
   });
 
   app.get("/api/tags", async () => ({ tags: await items.listTags() }));
+
+  app.post("/api/records", async (request, reply) => {
+    const body = createLibraryInput.extend({
+      title: z.string().trim().min(1).max(300),
+      url: httpUrl
+    }).strict().parse(request.body);
+    const item = await items.createRecord(body);
+    if (!item) return reply.code(409).send({ error: "url_already_saved" });
+    return reply.code(201).send(item);
+  });
+
+  app.patch("/api/items/:id/details", async (request, reply) => {
+    const { id } = z.object({ id: z.coerce.number().int().positive() }).parse(request.params);
+    const current = await items.get(id);
+    if (!current) return reply.code(404).send({ error: "not_found" });
+    const body = libraryInput.partial().extend({ title: z.string().trim().min(1).max(300).optional() }).strict().refine((value) => Object.keys(value).length > 0).parse(request.body);
+    return items.setDetails(id, body);
+  });
+
+  app.delete("/api/items/:id", async (request, reply) => {
+    const params = z.object({ id: z.coerce.number().int().positive() }).parse(request.params);
+    const deleted = await items.delete(params.id);
+    if (!deleted) return reply.code(404).send({ error: "not_found" });
+    return { ok: true };
+  });
 
   app.post("/api/items", async (request, reply) => {
     const body = z.object({
@@ -66,7 +94,7 @@ export async function buildApp(items: ItemService, apiToken: string) {
       tags: z.array(z.string().trim().min(1).max(64)).max(30).optional()
     }).parse(request.body);
     const item = await items.create(body.url, "desktop", body.title);
-    if (!item) return reply.code(500).send({ error: "internal_error" });
+    if (!item) return reply.code(409).send({ error: "url_already_saved" });
     for (const tag of body.tags ?? []) {
       await items.addTag(item.id, tag);
     }

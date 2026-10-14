@@ -9,6 +9,9 @@ files:
 mac:
   icon: build/icon.icns
   category: public.app-category.productivity
+  # shortcut: downloaded ad-hoc builds need user approval; use Developer ID and notarization for public distribution.
+  identity: "-"
+  hardenedRuntime: false
   target:
     - dmg
     - zip

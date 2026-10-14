@@ -1,17 +1,5 @@
-export type Item = {
-  id: number;
-  url: string;
-  title: string | null;
-  description: string | null;
-  faviconUrl: string | null;
-  source: "telegram" | "desktop";
-  readStatus: "unread" | "read";
-  isFavorite: boolean;
-  createdAt: string;
-  readAt: string | null;
-  favoritedAt: string | null;
-  tags: { id: number; name: string }[];
-};
+import type { ItemDto, LibraryFields } from "@oh-my-favorites/shared";
+export type Item = ItemDto;
 
 const DEFAULT_API_URL = "http://localhost:8787";
 
@@ -59,17 +47,26 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     throw new Error(`Cannot reach server at ${apiUrl}`);
   }
-  if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error ? `${body.error} (${response.status})` : `Request failed: ${response.status}`);
+  }
   return response.json() as Promise<T>;
 }
 
-export async function listItems(filter: "all" | "unread" | "favorites", tag?: string) {
+export async function listItems(filter: "all" | "unread" | "favorites" | "tagged", tag?: string) {
   const params = new URLSearchParams();
   if (filter === "unread") params.set("status", "unread");
   if (filter === "favorites") params.set("favorite", "true");
+  if (filter !== "tagged") params.set("view", filter === "favorites" ? "favorites" : "inbox");
   if (tag) params.set("tag", tag);
   const query = params.size ? `?${params.toString()}` : "";
-  return request<{ items: Item[] }>(`/api/items${query}`);
+  const result = await request<{ items: Item[] }>(`/api/items${query}`);
+  if (!Array.isArray(result.items)) throw new Error("Server returned an invalid item list");
+  if (result.items.some((item) => !["inbox", "library"].includes(item.area) || typeof item.notes !== "string" || !Array.isArray(item.tags))) {
+    throw new Error("Server is outdated. Update the server to use favorites and notes.");
+  }
+  return result;
 }
 
 export async function listTags() {
@@ -99,6 +96,18 @@ export async function renameItem(id: number, title: string) {
     method: "PATCH",
     body: JSON.stringify({ title })
   });
+}
+
+export async function deleteItem(id: number) {
+  return request<{ ok: true }>(`/api/items/${id}`, { method: "DELETE" });
+}
+
+export function createRecord(input: LibraryFields & { title: string; url: string }) {
+  return request<Item>("/api/records", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function saveDetails(id: number, input: Partial<LibraryFields> & { title?: string }) {
+  return request<Item>(`/api/items/${id}/details`, { method: "PATCH", body: JSON.stringify(input) });
 }
 
 export async function setItemTags(id: number, tags: string[]) {

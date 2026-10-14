@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, WebContentsView } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, shell, WebContentsView } from "electron";
 import { join } from "node:path";
 
 type ViewBounds = { x: number; y: number; width: number; height: number };
@@ -10,7 +10,7 @@ process.title = "Oh My Favorites";
 app.setName("Oh My Favorites");
 
 function developmentIconPath() {
-  return join(__dirname, "../../build/icon.png");
+  return join(import.meta.dirname, "../../build/icon.png");
 }
 
 function sanitizeBounds(bounds: ViewBounds): ViewBounds {
@@ -31,7 +31,7 @@ function createWindow() {
     title: "Oh My Favorites",
     ...(process.platform !== "darwin" && process.env.ELECTRON_RENDERER_URL ? { icon: developmentIconPath() } : {}),
     webPreferences: {
-      preload: join(__dirname, "../preload/index.cjs"),
+      preload: join(import.meta.dirname, "../preload/index.cjs"),
       contextIsolation: true,
       sandbox: true
     }
@@ -45,6 +45,11 @@ function createWindow() {
   });
   mainWindow.webContents.on("render-process-gone", (_event, details) => {
     console.error("Renderer process gone", details);
+  });
+  mainWindow.webContents.on("will-prevent-unload", (event) => {
+    if (!mainWindow) return;
+    const choice = dialog.showMessageBoxSync(mainWindow, { type: "question", buttons: ["Keep editing", "Discard"], defaultId: 0, cancelId: 0, message: "Discard unsaved changes?" });
+    if (choice === 1) event.preventDefault();
   });
 
   browserView = new WebContentsView({
@@ -73,7 +78,7 @@ function createWindow() {
 
   const rendererLoad = process.env.ELECTRON_RENDERER_URL
     ? mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
-    : mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+    : mainWindow.loadFile(join(import.meta.dirname, "../renderer/index.html"));
   void rendererLoad.catch((error) => console.error("Renderer load promise rejected", error));
 
   mainWindow.on("closed", () => {
@@ -83,11 +88,30 @@ function createWindow() {
 }
 
 ipcMain.handle("browser:open", async (_event, url: string) => {
+  requireApp(_event);
   if (!browserView) return;
   if (!isSafeBrowserUrl(url)) throw new Error("Only http(s) URLs are supported");
   const parsed = new URL(url);
   browserView.setVisible(true);
   await browserView.webContents.loadURL(parsed.toString());
+});
+
+ipcMain.handle("browser:open-external", async (event, url: string) => {
+  requireApp(event);
+  if (typeof url !== "string" || !isSafeBrowserUrl(url)) throw new Error("Only http(s) URLs are supported");
+  await shell.openExternal(new URL(url).toString());
+});
+
+function requireApp(event: Pick<Electron.IpcMainInvokeEvent, "sender" | "senderFrame">) {
+  if (!mainWindow || event.sender !== mainWindow.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) {
+    throw new Error("Only the app can perform this action");
+  }
+}
+
+ipcMain.handle("notes:discard", async (event) => {
+  requireApp(event);
+  const result = await dialog.showMessageBox(mainWindow!, { type: "question", buttons: ["Keep editing", "Discard"], defaultId: 0, cancelId: 0, message: "Discard unsaved changes?" });
+  return result.response === 1;
 });
 
 ipcMain.on("browser:set-bounds", (_event, bounds: ViewBounds) => {

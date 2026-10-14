@@ -58,14 +58,15 @@ No platform hopping. No “where did I save that link?” Just one place to come
 | --- | --- | --- |
 | 📥 | **Unified inbox** | Collect links from Telegram, the browser extension, desktop, or MCP-capable agents. |
 | 👀 | **Unread / read** | New saves stay unread until you actually open or explicitly update them. |
-| ⭐ | **Favorites** | Keep the items that deserve long-term attention. |
+| ⭐ | **Favorites** | Keep useful pages with notes, collections and content dates; search notes and combine filters. |
 | 🏷️ | **Tags** | Add multiple tags and browse by topic. |
 | ✏️ | **Custom titles** | Rename entries manually or let an agent supply a better title. |
 | 🤖 | **Agent-ready** | Local stdio MCP and remote Streamable HTTP MCP are both supported. |
 | 🌐 | **One-click browser capture** | Click the Chrome / Edge extension icon to save the current page immediately. |
 | 📱 | **Mobile-friendly capture** | Forward a URL to Telegram instead of fighting with browser bookmark UIs. |
-| 🖥️ | **Desktop reading** | Electron client with an embedded, isolated Chromium view. |
-| 🌗 | **Desktop UX** | Light/dark theme, collapsible navigation, timeline, unread, favorites, and tags. |
+| 🗑️ | **Delete items** | Confirm deletion from Collected or Favorites to remove an item and its tag links. |
+| 🖥️ | **Desktop reading** | Read in an embedded, isolated Chromium view or use the item button to open in your default browser. |
+| 🌗 | **Desktop UX** | Light/dark theme, collapsible navigation, collected pages, unread, favorites, and tags. |
 | 🐳 | **Self-hosted** | Fastify + SQLite backend deployable with Docker Compose. |
 
 ## Architecture
@@ -156,6 +157,16 @@ pnpm build:extension
 Then open `chrome://extensions` or `edge://extensions`, enable **Developer mode**, choose **Load unpacked**, and select `apps/browser-extension/dist`.
 
 The extension opens its settings page on first install. Configure the same Server URL and API token, then click the extension icon on any HTTP/HTTPS page to save it directly to your inbox.
+
+## Favorites & Tags
+
+Use **Collected / Unread** to consume saved web pages. Open pages in the embedded reader or your default browser, then star the ones worth keeping. Collected and Favorites share the same item, read state, notes and tags.
+
+Choose **Favorites → New** to save a web favorite directly with a title and source URL. Use **Notes** to edit text, collection and content date. Existing notes are retained; Markdown text is stored without a rendered preview. Unsaved edits prompt before switching records or closing the window.
+
+Add or remove tags using the tag button on each list item. The sidebar **Tags** view searches both collected pages and favorites; the tag filter within Favorites applies to that view.
+
+Update the server and desktop client together. Server startup upgrades SQLite automatically and preserves existing records. Data from retired extensions remains in existing databases without appearing in the application. Development scope: [docs/library-development.md](./docs/library-development.md).
 
 ## Telegram Capture
 

@@ -56,8 +56,9 @@ jobs:
 
       - name: 打包
         run: pnpm --filter @oh-my-favorites/desktop package --mac --publish never
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: 验证应用签名
+        run: codesign --verify --deep --strict --verbose=2 apps/desktop/release/mac*/"Oh My Favorites.app"
 
       - name: 创建 Release 并上传安装包
         env:
